@@ -28,8 +28,7 @@ from openid.extensions import ax, sreg
 from openid.store import memstore, filestore
 from openid import oidutil
 
-from linkoauth.util import config, request, session, url
-from linkoauth.util import redirect
+from linkoauth.util import config, session, redirect
 from linkoauth.base import get_oauth_config, AccessException
 
 
@@ -259,7 +258,7 @@ class OpenIDResponder():
         """
         return None
 
-    def request_access(self, request):
+    def request_access(self, request, url):
         post = request.POST
 
         log_debug = self.log_debug
@@ -324,7 +323,7 @@ class OpenIDResponder():
                                           return_to=return_to,
                                           immediate=False)
 
-    def verify(self):
+    def verify(self, url):
         """Handle incoming redirect from OpenID Provider"""
         log_debug = self.log_debug
         if log_debug:

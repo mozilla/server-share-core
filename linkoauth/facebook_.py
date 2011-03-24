@@ -32,7 +32,7 @@ import copy
 import logging
 
 from linkoauth.base import OAuth2
-from linkoauth.util import url, config
+from linkoauth.util import build_url, config
 
 domain = 'facebook.com'
 log = logging.getLogger(domain)
@@ -140,7 +140,8 @@ class responder(OAuth2):
           profile_url = config.get("oauth.facebook.com.profile", self.profile_url)
           fields = 'id,first_name,last_name,name,link,birthday,email,website,verified,picture,gender,timezone'
           client = httplib2.Http()
-          resp, content = client.request(url(profile_url, access_token=access_token, fields=fields))
+          url = build_url(profile_url, access_token=access_token, fields=fields)
+          resp, content = client.request(url)
           if resp['status'] != '200':
                raise Exception("Error status: %r", resp['status'])
 

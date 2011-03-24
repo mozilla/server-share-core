@@ -48,7 +48,7 @@ from email.mime.text import MIMEText
 from email.mime.image import MIMEImage
 from email.header import Header
 
-from linkoauth.util import config, request, asbool, render
+from linkoauth.util import config, asbool, render
 from linkoauth.util import safeHTML, literal
 from linkoauth.oid_extensions import OAuthRequest
 from linkoauth.oid_extensions import UIRequest

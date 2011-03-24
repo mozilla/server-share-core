@@ -2,6 +2,7 @@ import os
 import sgmllib
 import string
 import sys
+from urllib import urlencode
 
 from webob.exc import status_map
 from webhelpers.html import literal
@@ -81,7 +82,12 @@ def render(template_name, extra_vars=None, cache_key=None,
 
 _CACHE = StackedObjectProxy(name="cache")
 
-url = StackedObjectProxy(name="url")
+
+def build_url(url, **params):
+    return '%s?%s' % (url, urlencode(params))
+
+
+session = StackedObjectProxy(name="session")
 
 config = DispatchingConfig()
 
@@ -89,8 +95,6 @@ config = DispatchingConfig()
 def setup_config(appconfig):
     config.push_process_config(appconfig)
 
-
-session = StackedObjectProxy(name="session")
 
 
 def _cached_template(template_name, render_func, ns_options=(),
