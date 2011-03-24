@@ -87,8 +87,6 @@ def build_url(url, **params):
     return '%s?%s' % (url, urlencode(params))
 
 
-session = StackedObjectProxy(name="session")
-
 config = DispatchingConfig()
 
 

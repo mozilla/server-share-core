@@ -9,7 +9,7 @@ import httplib2
 import oauth2 as oauth
 import logging
 
-from linkoauth.util import config, redirect, asbool, session
+from linkoauth.util import config, redirect, asbool
 
 log = logging.getLogger("oauth.base")
 
@@ -44,7 +44,7 @@ class OAuth1():
         self.consumer = oauth.Consumer(self.consumer_key, self.consumer_secret)
         self.sigmethod = oauth.SignatureMethod_HMAC_SHA1()
 
-    def request_access(self, request, url):
+    def request_access(self, request, url, session):
         session['end_point_success'] = request.POST.get('end_point_success',
                                     self.config.get('oauth_success'))
         session['end_point_auth_failure'] = \
@@ -84,7 +84,7 @@ class OAuth1():
         oauth_request = oauth.Request.from_token_and_callback(token=request_token, http_url=http_url)
         return redirect(oauth_request.to_url())
 
-    def verify(self, url):
+    def verify(self, request, url, session):
         request_token = oauth.Token.from_string(session['token'])
         verifier = request.GET.get('oauth_verifier')
         if not verifier:
@@ -114,7 +114,7 @@ class OAuth2():
         self.app_secret = self.config.get('app_secret')
         self.scope = self.config.get('scope', None)
 
-    def request_access(self, request, url):
+    def request_access(self, request, url, session):
         session['end_point_success'] = request.POST.get('end_point_success',
                                              self.config.get('oauth_success'))
         session['end_point_auth_failure'] = \
@@ -129,7 +129,7 @@ class OAuth2():
                        redirect_uri=return_to)
         return redirect(loc)
 
-    def verify(self, url):
+    def verify(self, request, url, session):
         code = request.GET.get('code')
         if not code:
             error = request.params.get('error', '')
