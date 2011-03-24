@@ -90,7 +90,6 @@ def setup_config(appconfig):
     config.push_process_config(appconfig)
 
 
-request = StackedObjectProxy(name="request")
 session = StackedObjectProxy(name="session")
 
 

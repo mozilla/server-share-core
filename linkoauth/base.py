@@ -45,9 +45,11 @@ class OAuth1():
         self.consumer = oauth.Consumer(self.consumer_key, self.consumer_secret)
         self.sigmethod = oauth.SignatureMethod_HMAC_SHA1()
 
-    def request_access(self):
-        session['end_point_success'] = request.POST.get('end_point_success', self.config.get('oauth_success'))
-        session['end_point_auth_failure'] = request.POST.get('end_point_auth_failure', self.config.get('oauth_failure'))
+    def request_access(self, request):
+        session['end_point_success'] = request.POST.get('end_point_success',
+                                    self.config.get('oauth_success'))
+        session['end_point_auth_failure'] = \
+                request.POST.get('end_point_auth_failure', self.config.get('oauth_failure'))
 
         # Create the consumer and client, make the request
         client = oauth.Client(self.consumer)
@@ -113,9 +115,12 @@ class OAuth2():
         self.app_secret = self.config.get('app_secret')
         self.scope = self.config.get('scope', None)
 
-    def request_access(self):
-        session['end_point_success'] = request.POST.get('end_point_success', self.config.get('oauth_success'))
-        session['end_point_auth_failure'] = request.POST.get('end_point_auth_failure', self.config.get('oauth_failure'))
+    def request_access(self, request):
+        session['end_point_success'] = request.POST.get('end_point_success',
+                                             self.config.get('oauth_success'))
+        session['end_point_auth_failure'] = \
+                request.POST.get('end_point_auth_failure',
+                                 self.config.get('oauth_failure'))
         session.save()
 
         return_to = url(controller='account', action="verify", provider=self.provider,

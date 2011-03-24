@@ -65,7 +65,7 @@ class responder(OpenIDResponder):
         """Return the Yahoo OpenID directed endpoint"""
         return 'https://me.yahoo.com/'
 
-    def _update_authrequest(self, authrequest):
+    def _update_authrequest(self, authrequest, request):
         # Add on the Attribute Exchange for those that support that
         request_attributes = request.POST.get('ax_attributes', ax_attributes.keys())
         ax_request = ax.FetchRequest()

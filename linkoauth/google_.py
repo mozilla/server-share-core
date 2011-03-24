@@ -104,7 +104,8 @@ class GoogleConsumer(consumer.GenericConsumer):
 
 class responder(OpenIDResponder):
     def __init__(self, consumer=None, oauth_key=None, oauth_secret=None,
-                 request_attributes=None, *args, **kwargs):
+                 request_attributes=None, domain='google.com',
+                 *args, **kwargs):
         """Handle Google Auth
 
         This also handles making an OAuth request during the OpenID
@@ -116,7 +117,7 @@ class responder(OpenIDResponder):
         self.consumer_key = str(self.config.get('consumer_key'))
         self.consumer_secret = str(self.config.get('consumer_secret'))
         # support for google apps domains
-        self.provider = request.POST.get('domain', domain)
+        self.provider = domain
         self.consumer_class = GoogleConsumer
 
     def _lookup_identifier(self, identifier):
@@ -126,7 +127,7 @@ class responder(OpenIDResponder):
              "https://www.google.com/accounts/o8/site-xrds?hd=%s" % identifier
         return "https://www.google.com/accounts/o8/id"
 
-    def _update_authrequest(self, authrequest):
+    def _update_authrequest(self, authrequest, request):
         """Update the authrequest with Attribute Exchange and optionally OAuth
 
         To optionally request OAuth, the request POST must include an

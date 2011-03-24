@@ -227,7 +227,7 @@ class OpenIDResponder():
         a default identifier"""
         return identifier
 
-    def _update_authrequest(self, authrequest):
+    def _update_authrequest(self, authrequest, request):
         """Update the authrequest with the default extensions and attributes
         we ask for
 
@@ -259,7 +259,7 @@ class OpenIDResponder():
         """
         return None
 
-    def request_access(self):
+    def request_access(self, request):
         post = request.POST
 
         log_debug = self.log_debug
@@ -297,7 +297,7 @@ class OpenIDResponder():
             return redirect(fail_uri)
 
         # Update the authrequest
-        self._update_authrequest(authrequest)
+        self._update_authrequest(authrequest, request)
 
         return_to = url(controller='account',
                 action="verify", provider=self.provider,
