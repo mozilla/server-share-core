@@ -42,6 +42,7 @@ setup(
         "Mako",
         "WebOb",
         "WebHelpers",
+        "simplejson",
         "nose"
     ],
     packages=find_packages(exclude=['ez_setup']),

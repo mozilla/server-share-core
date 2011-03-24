@@ -1,7 +1,6 @@
 import unittest
 import httplib2
 import json
-import smtplib
 import urllib2
 
 from linkoauth.util import setup_config

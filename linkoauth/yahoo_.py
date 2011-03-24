@@ -91,10 +91,10 @@ class responder(OpenIDResponder):
         profile = result_data['profile']
         userid = profile['verifiedEmail']
         username = profile['preferredUsername']
-        profile['emails'] = [{ 'value': userid, 'primary': True }]
+        profile['emails'] = [{'value': userid, 'primary': True }]
         account = {'domain': domain,
                    'userid': userid,
-                   'username': username }
+                   'username': username}
         profile['accounts'] = [account]
         profile['xoauth_yahoo_guid'] = result_data['xoauth_yahoo_guid']
         return result_data
@@ -153,12 +153,11 @@ class api():
             return response['result'], error
         elif 'error' in response:
             error = copy.copy(response['error'])
-            error.update({ 'provider': domain, 'status': int(resp['status']) })
+            error.update({'provider': domain, 'status': int(resp['status'])})
         else:
             error = {'provider': domain,
                      'message': "unexpected yahoo response: %r"% (response,),
-                     'status': int(resp['status'])
-            }
+                     'status': int(resp['status'])}
             log.error("unexpected yahoo response: %r", response)
 
         return result, error
@@ -287,7 +286,7 @@ class api():
                     else:
                         poco['displayName'] = "%s %s" % (value.get('givenName'), value.get('familyName'),)
                 elif field == 'email':
-                    poco.setdefault('emails',[]).append({ 'value': value, 'primary': False })
+                    poco.setdefault('emails', []).append({'value': value, 'primary': False})
                 elif field == 'nickname':
                     poco['nickname'] = value
 

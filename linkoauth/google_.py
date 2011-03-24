@@ -328,13 +328,14 @@ class api():
         extra_vars['title'] = title
         extra_vars['description'] = description
         extra_vars['message'] = message
-
         extra_vars['thumbnail'] = options.get('picture_base64', "") != ""
+
+        mail = render('/html_email.mako', extra_vars=extra_vars)
+        mail = mail.encode('utf-8')
 
         if extra_vars['thumbnail']:
             part2 = MIMEMultipart('related')
-
-            html = MIMEText(render('/html_email.mako').encode('utf-8'), 'html')
+            html = MIMEText(mail, 'html')
             html.set_charset('utf-8')
 
             # FIXME: we decode the base64 data just so MIMEImage
@@ -348,8 +349,7 @@ class api():
             part2.attach(html)
             part2.attach(image)
         else:
-            part2 = MIMEText(render('/html_email.mako').encode('utf-8'),
-                                    'html')
+            part2 = MIMEText(mail, 'html')
             part2.set_charset('utf-8')
 
         # get the title, or the long url or the short url or nothing

@@ -2,35 +2,35 @@
     "http://www.w3.org/TR/html4/loose.dtd">
 <html lang="en">
 <head>
-    <title>${c.subject}</title>
+    <title>${subject}</title>
 </head>
 <body style="font-family:Helvetica Neue,Helvetica,Arial,sans-serif;max-width:460px;line-height:21px;display:block;">
     <div class="message" style="font-size:14px;">
-        ${context.write(c.safeHTML(c.message))}
+        ${context.write(safeHTML(message))}
     </div>
     <div class="share" style="margin:21px 0 42px 0;">
         <div class="link">
-% if c.shorturl:
-            <a target="_blank" style="color:#00A0FF;font-size:16px;" href="${c.shorturl}">${c.title}</a>
-% elif c.longurl:
-            <a target="_blank" style="color:#00A0FF;font-size:16px;" href="${c.longurl}">${c.title}</a>
+% if shorturl:
+            <a target="_blank" style="color:#00A0FF;font-size:16px;" href="${shorturl}">${title}</a>
+% elif longurl:
+            <a target="_blank" style="color:#00A0FF;font-size:16px;" href="${longurl}">${title}</a>
 % endif
         </div>
         <table style="border:none;border-collapse:collapse;margin:10px 0;width:100%;">
         <tbody><tr>
         <td style="border-left: 1px solid #666;vertical-align:top;">
-% if c.description:
+% if description:
         <div class="description" style="font-size:12px;color:#666;font-style:italic;padding:0 0 0 10px;">
-            ${context.write(c.safeHTML(c.description))}
+            ${context.write(safeHTML(description))}
         </div>
 % endif
         </td>
-% if c.thumbnail:
+% if thumbnail:
         <td style="width:1%">
-% if c.shorturl:
-            <a target="_blank" style="color:#00A0FF;font-size:16px;" href="${c.shorturl}">
-% elif c.longurl:
-            <a target="_blank" style="color:#00A0FF;font-size:16px;" href="${c.longurl}">
+% if shorturl:
+            <a target="_blank" style="color:#00A0FF;font-size:16px;" href="${shorturl}">
+% elif longurl:
+            <a target="_blank" style="color:#00A0FF;font-size:16px;" href="${longurl}">
 % endif
             <img src="cid:thumbnail" style="padding:1px;border:1px solid #ccc;margin:5px;"/></a>
         </td>

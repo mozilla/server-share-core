@@ -110,7 +110,6 @@ class api():
                 headers=headers, body=body)
 
         data = content and json.loads(content) or resp
-
         result = error = None
         status = int(resp['status'])
         if status < 200 or status >= 300:

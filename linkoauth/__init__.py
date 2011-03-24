@@ -41,5 +41,10 @@ _providers = {
     linkedin_.domain: linkedin_
 }
 
+
+def get_providers():
+    """Returns provider names"""
+    return _providers.keys()
+
 def get_provider(provider):
     return _providers.get(provider)

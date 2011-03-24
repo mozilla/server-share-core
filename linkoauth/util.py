@@ -1,6 +1,7 @@
 import os
 import sgmllib
 import string
+import sys
 
 from webob.exc import status_map
 from webhelpers.html import literal
@@ -45,7 +46,7 @@ def _handle_mako_error(context, exc):
         exc.is_mako_exception = True
     except:
         pass
-    raise exc, None, sys.exc_info()[2]
+    raise exc, None, sys.exc_info()[2]   # NOQA
 
 
 _LOOKUP = TemplateLookup(
@@ -81,9 +82,15 @@ def render(template_name, extra_vars=None, cache_key=None,
 _CACHE = StackedObjectProxy(name="cache")
 
 url = StackedObjectProxy(name="url")
+
 config = DispatchingConfig()
+
+
+def setup_config(appconfig):
+    config.push_process_config(appconfig)
+
+
 request = StackedObjectProxy(name="request")
-response = StackedObjectProxy(name="response")
 session = StackedObjectProxy(name="session")
 
 
@@ -116,8 +123,6 @@ class StrippingParser(sgmllib.SGMLParser):
 
     # These are the HTML tags that we will leave intact
     valid_tags = ('b', 'a', 'i', 'br', 'p')
-
-    from htmlentitydefs import entitydefs # replace entitydefs from sgmllib
 
     def __init__(self):
         sgmllib.SGMLParser.__init__(self)

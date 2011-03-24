@@ -38,7 +38,8 @@ domain = 'facebook.com'
 log = logging.getLogger(domain)
 
 # this function is a derivative of:
-# http://code.activestate.com/recipes/146306-http-client-to-post-using-multipartform-data/
+# http://code.activestate.com/recipes/
+#   146306-http-client-to-post-using-multipartform-data/
 ## {{{ http://code.activestate.com/recipes/146306/ (r1)
 def encode_multipart_formdata(body):
     BOUNDARY = '----------$_BOUNDARY_' + str(random.getrandbits(128)) + '_$'
