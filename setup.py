@@ -25,7 +25,7 @@ from setuptools import setup, find_packages
 VERSION = '0.1'
 
 setup(
-    name='ShareCore',
+    name='linkoauth',
     version=VERSION,
     description='F1 core lib',
     author='Mozilla Messaging',
