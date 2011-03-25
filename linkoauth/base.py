@@ -5,11 +5,12 @@ try:
     from urlparse import parse_qs
 except ImportError:
     from cgi import parse_qs   # NOQA
-import httplib2
+import json
 import oauth2 as oauth
 import logging
 
 from linkoauth.util import config, redirect, asbool
+from linkoauth.protocap import HttpRequestor
 
 log = logging.getLogger("oauth.base")
 
@@ -19,6 +20,10 @@ class OAuthKeysException(Exception):
 
 class AccessException(Exception):
     pass
+
+class ServiceUnavailableException(Exception):
+    def __init__(self, debug_message=None):
+        self.debug_message = debug_message
 
 def get_oauth_config(provider):
     key = 'oauth.'+provider+'.'
@@ -45,11 +50,6 @@ class OAuth1():
         self.sigmethod = oauth.SignatureMethod_HMAC_SHA1()
 
     def request_access(self, request, url, session):
-        session['end_point_success'] = request.POST.get('end_point_success',
-                                    self.config.get('oauth_success'))
-        session['end_point_auth_failure'] = \
-                request.POST.get('end_point_auth_failure', self.config.get('oauth_failure'))
-
         # Create the consumer and client, make the request
         client = oauth.Client(self.consumer)
         params = {'oauth_callback': url(controller='account',
@@ -63,10 +63,12 @@ class OAuth1():
         oauth_request = oauth.Request.from_consumer_and_token(self.consumer,
             http_url=self.request_token_url, parameters=params)
         oauth_request.sign_request(self.sigmethod, self.consumer, None)
-        resp, content = httplib2.Http.request(client, self.request_token_url, method='GET',
+        client = HttpRequestor()
+        resp, content = client.request(self.request_token_url, method='GET',
             headers=oauth_request.to_header())
-
+            
         if resp['status'] != '200':
+            client.save_capture("oauth1 request_access failure")
             raise AccessException("Error status: %r", resp['status'])
 
         request_token = oauth.Token.from_string(content)
@@ -88,13 +90,13 @@ class OAuth1():
         request_token = oauth.Token.from_string(session['token'])
         verifier = request.GET.get('oauth_verifier')
         if not verifier:
-            redirect(session.get('end_point_auth_failure',self.config.get('oauth_failure')))
+            redirect(self.config.get('oauth_failure'))
 
         request_token.set_verifier(verifier)
         client = oauth.Client(self.consumer, request_token)
         resp, content = client.request(self.access_token_url, "POST")
         if resp['status'] != '200':
-            redirect(session.get('end_point_auth_failure',self.config.get('oauth_failure')))
+            redirect(self.config.get('oauth_failure'))
 
         access_token = dict(urlparse.parse_qsl(content))
         return self._get_credentials(access_token)
@@ -115,13 +117,6 @@ class OAuth2():
         self.scope = self.config.get('scope', None)
 
     def request_access(self, request, url, session):
-        session['end_point_success'] = request.POST.get('end_point_success',
-                                             self.config.get('oauth_success'))
-        session['end_point_auth_failure'] = \
-                request.POST.get('end_point_auth_failure',
-                                 self.config.get('oauth_failure'))
-        session.save()
-
         return_to = url(controller='account', action="verify", provider=self.provider,
                            qualified=True)
 
@@ -146,9 +141,10 @@ class OAuth2():
                 client_secret=self.app_secret, code=code,
                 redirect_uri=return_to)
 
-        client = httplib2.Http()
+        client = HttpRequestor()
         resp, content = client.request(access_url)
         if resp['status'] != '200':
+            client.save_capture("oauth2 verify failure")
             raise Exception("Error status: %s" % (resp['status'],))
 
         access_token = parse_qs(content)['access_token'][0]
