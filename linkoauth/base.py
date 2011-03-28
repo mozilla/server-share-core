@@ -9,7 +9,7 @@ import json
 import oauth2 as oauth
 import logging
 
-from linkoauth.util import config, redirect, asbool
+from linkoauth.util import config, redirect, asbool, build_url
 from linkoauth.protocap import HttpRequestor
 
 log = logging.getLogger("oauth.base")
@@ -66,7 +66,7 @@ class OAuth1():
         client = HttpRequestor()
         resp, content = client.request(self.request_token_url, method='GET',
             headers=oauth_request.to_header())
-            
+
         if resp['status'] != '200':
             client.save_capture("oauth1 request_access failure")
             raise AccessException("Error status: %r", resp['status'])
@@ -120,8 +120,9 @@ class OAuth2():
         return_to = url(controller='account', action="verify", provider=self.provider,
                            qualified=True)
 
-        loc = url(self.authorization_url, client_id=self.app_id, scope=self.scope,
-                       redirect_uri=return_to)
+        loc = build_url(self.authorization_url, client_id=self.app_id,
+                        scope=self.scope,
+                        redirect_uri=return_to)
         return redirect(loc)
 
     def verify(self, request, url, session):
@@ -137,7 +138,7 @@ class OAuth2():
         return_to = url(controller='account', action="verify", provider=self.provider,
                            qualified=True)
 
-        access_url = url(self.access_token_url, client_id=self.app_id,
+        access_url = build_url(self.access_token_url, client_id=self.app_id,
                 client_secret=self.app_secret, code=code,
                 redirect_uri=return_to)
 
