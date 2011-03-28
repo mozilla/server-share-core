@@ -21,10 +21,16 @@ _CONFIG = {'oauth.yahoo.com.consumer_key': 'xxx',
            'oauth.twitter.com.consumer_secret': 'xxx'}
 
 
+class _Res(dict):
+    def __init__(self, status):
+        self.status = status
+        self['status'] = status
+
+
 def _request(*args, **kwargs):
     res = {'status': 200, 'id': 123, 'error': '',
             'result': {'status': 200}}
-    return {'status': 200}, json.dumps(res)
+    return _Res(200), json.dumps(res)
 
 
 class _SMTP(object):
@@ -62,13 +68,13 @@ class TestBasics(unittest.TestCase):
         self.old_httplib2 = httplib2.Http.request
         httplib2.Http.request = _request
         self.old_smtp = google_.SMTP
-        google_.SMTP = _SMTP
+        google_.SMTPRequestor = _SMTP
         self.old_urlopen = urllib2.urlopen
         urllib2.urlopen = _urlopen
 
     def tearDown(self):
         httplib2.Http.request = self.old_httplib2
-        google_.SMTP = self.old_smtp
+        google_.SMTPRequestor = self.old_smtp
         urllib2.urlopen = self.old_urlopen
 
     def test_registery(self):
@@ -87,4 +93,8 @@ class TestBasics(unittest.TestCase):
             provider = get_provider(provider)
             api = provider.api(_ACCOUNT)
             res, error = api.sendmessage(message, args)
+            if res is None:
+                import pdb; pdb.set_trace()
+                api.sendmessage(message, args)
+
             self.assertTrue(res['status'] in (200, 'message sent'))
