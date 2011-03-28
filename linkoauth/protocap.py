@@ -50,7 +50,7 @@ class ProtocolCapturingBase(object):
             log.exception("failed to write a capture log")
 
 # Stuff for http captures
-    
+
 # In memory repr is
 # {'uri': full URI initiating the sequence
 #  'connections': [list of connection made]
@@ -99,7 +99,7 @@ class HttpRequestor(ProtocolCapturingBase):
     def pc_get_host(self):
         return urlparse.urlparse(self.http.capture['uri']).netloc
 
-    def request(self, uri, method="GET", body=None, headers=None):
+    def request(self, uri, method="GET", body='', headers=None):
         response, data = self.http.request(uri, method, body, headers)
         if response['status']=='200' and asbool(config.get('protocol_capture_success')):
             self.save_capture("automatic success save")
