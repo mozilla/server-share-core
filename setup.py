@@ -43,7 +43,8 @@ setup(
         "WebOb",
         "WebHelpers",
         "simplejson",
-        "nose"
+        "nose",
+        "pylibmc",
     ],
     packages=find_packages(exclude=['ez_setup']),
     include_package_data=True,
