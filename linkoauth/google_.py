@@ -108,6 +108,9 @@ class GoogleConsumer(consumer.GenericConsumer):
 
 
 class responder(OpenIDResponder):
+
+    domain = 'google.com'
+
     def __init__(self, consumer=None, oauth_key=None, oauth_secret=None,
                  request_attributes=None, domain='google.com',
                  *args, **kwargs):
@@ -124,6 +127,11 @@ class responder(OpenIDResponder):
         # support for google apps domains
         self.provider = domain
         self.consumer_class = GoogleConsumer
+
+    @classmethod
+    def get_name(cls):
+        return cls.domain
+
 
     def _lookup_identifier(self, identifier):
         """Return the Google OpenID directed endpoint"""
@@ -297,7 +305,7 @@ class SMTPRequestorImpl(SMTP, ProtocolCapturingBase):
 
 SMTPRequestor = SMTPRequestorImpl
 
-class api():
+class api(object):
     def __init__(self, account):
         self.host = "smtp.gmail.com"
         self.port = 587
@@ -314,6 +322,10 @@ class api():
         self.consumer_secret = str(self.config.get('consumer_secret'))
         self.consumer = oauth.Consumer(key=self.consumer_key,
                 secret=self.consumer_secret)
+
+    @classmethod
+    def get_name(cls):
+        return domain
 
     def sendmessage(self, message, options={}):
         result = error = None

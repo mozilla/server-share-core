@@ -46,6 +46,9 @@ log = logging.getLogger(domain)
 
 
 class responder(OpenIDResponder):
+
+    domain = 'yahoo.com'
+
     def __init__(self, consumer=None, oauth_key=None, oauth_secret=None, request_attributes=None, *args,
                  **kwargs):
         """Handle Google Auth
@@ -61,6 +64,10 @@ class responder(OpenIDResponder):
             self.return_to_query['domain_unverified']=1
         # yahoo openid only works in stateless mode, do not use the openid_store
         self.openid_store = None
+
+    @classmethod
+    def get_name(cls):
+        return cls.domain
 
     def _lookup_identifier(self, identifier):
         """Return the Yahoo OpenID directed endpoint"""
@@ -101,7 +108,7 @@ class responder(OpenIDResponder):
         return result_data
 
 
-class api():
+class api(object):
     endpoints = {
         "mail":"http://mail.yahooapis.com/ws/mail/v1.1/jsonrpc",
         "contacts":"http://social.yahooapis.com/v1/user/%s/contacts"
@@ -119,6 +126,11 @@ class api():
         self.consumer_secret = self.config.get('consumer_secret')
         self.consumer = oauth.Consumer(key=self.consumer_key, secret=self.consumer_secret)
         self.sigmethod = oauth.SignatureMethod_HMAC_SHA1()
+
+    @classmethod
+    def get_name(cls):
+        return domain
+
 
     def _maybe_throw_response_exception(self, resp, content):
         # maybe throw one of our internal response exceptions based on the

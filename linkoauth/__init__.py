@@ -20,14 +20,12 @@
 #
 # Contributor(s):
 #
+import abc
+from services.pluginreg import PluginRegistry
 
-from linkoauth import facebook_
-from linkoauth import google_
+from linkoauth import facebook_, google_, twitter_, yahoo_, linkedin_
 #from linkoauth.live_ import LiveResponder
 #from linkoauth.openidconsumer import OpenIDResponder
-from linkoauth import twitter_
-from linkoauth import yahoo_
-from linkoauth import linkedin_
 
 __all__ = ['get_provider']
 
@@ -42,6 +40,71 @@ _providers = {
 }
 
 
+class Responder(PluginRegistry):
+    """Abstract Base Class for the responder APIs."""
+    plugin_type = 'responder'
+
+    @abc.abstractmethod
+    def get_name(self):
+        """Returns the name of the plugin."""
+
+    @abc.abstractmethod
+    def request_access(self, request, url, session):
+        """Returns a redirect url
+
+        Args:
+            request: WebOb request object
+            url: Routes URL generator callable
+            session: Session object
+
+        Returns:
+            return url
+        """
+
+# pre-register provided backends
+Responder.register(twitter_.responder)
+Responder.register(facebook_.responder)
+Responder.register(google_.responder)
+Responder.register(yahoo_.responder)
+Responder.register(linkedin_.responder)
+
+
+def get_responder(domain):
+    return Responder.get(domain)
+
+
+class Requester(PluginRegistry):
+    """Abstract Base Class for the requester APIs."""
+    plugin_type = 'requester'
+
+    @abc.abstractmethod
+    def get_name(self):
+        """Returns the name of the plugin."""
+
+    @abc.abstractmethod
+    def sendmessage(self, message, options={}):
+        """xxx"""
+
+    @abc.abstractmethod
+    def getcontacts(self, start=0, page=25, group=None):
+        """xxx"""
+
+
+# pre-register provided backends
+Requester.register(twitter_.api)
+Requester.register(facebook_.api)
+Requester.register(google_.api)
+Requester.register(yahoo_.api)
+Requester.register(linkedin_.api)
+
+
+def get_requester(domain, account):
+    return Requester.get(domain, account=account)
+
+
+#
+# XXX to be removed
+#
 def get_providers():
     """Returns provider names"""
     return _providers.keys()

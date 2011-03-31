@@ -45,6 +45,7 @@ setup(
         "simplejson",
         "nose",
         "pylibmc",
+        "Services"
     ],
     packages=find_packages(exclude=['ez_setup']),
     include_package_data=True,

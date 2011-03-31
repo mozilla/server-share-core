@@ -34,7 +34,7 @@ def get_oauth_config(provider):
             d[k[keylen:]] = v
     return d
 
-class OAuth1():
+class OAuth1(object):
     def __init__(self, provider):
         self.provider = provider
         self.config = get_oauth_config(provider)
@@ -104,7 +104,7 @@ class OAuth1():
     def _get_credentials(self, access_token):
         return access_token
 
-class OAuth2():
+class OAuth2(object):
     def __init__(self, provider):
         self.provider = provider
         self.config = get_oauth_config(provider)

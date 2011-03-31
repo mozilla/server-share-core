@@ -191,7 +191,7 @@ def extract_openid_data(identifier, sreg_resp, ax_resp):
     return ud
 
 
-class OpenIDResponder():
+class OpenIDResponder(object):
     """OpenID Consumer for handling OpenID authentication
     """
 

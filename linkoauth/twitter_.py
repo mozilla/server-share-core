@@ -93,6 +93,10 @@ class responder(OAuth1):
     def __init__(self):
         OAuth1.__init__(self, domain)
 
+    @classmethod
+    def get_name(cls):
+        return cls.domain
+
     def _get_credentials(self, access_token):
         # XXX should call twitter.api.VerifyCredentials to get the user object
         # Setup the normalized poco contact object
@@ -118,7 +122,8 @@ class responder(OAuth1):
             profile.update(twitter_to_poco(result))
         return result_data
 
-class api():
+
+class api(object):
     def __init__(self, account=None, oauth_token=None, oauth_token_secret=None):
         self.oauth_token = account and account.get('oauth_token') or oauth_token
         self.oauth_token_secret = account and account.get('oauth_token_secret') or oauth_token_secret
@@ -126,6 +131,10 @@ class api():
             raise OAuthKeysException()
 
         self.config = get_oauth_config(domain)
+
+    @classmethod
+    def get_name(cls):
+        return domain
 
     def api(self):
         auth = OAuth(token=self.oauth_token,

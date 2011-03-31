@@ -47,6 +47,10 @@ class responder(OAuth1):
     def __init__(self):
         OAuth1.__init__(self, domain)
 
+    @classmethod
+    def get_name(cls):
+        return cls.domain
+
     def _get_credentials(self, access_token):
         fields = ['id', 'first-name', 'last-name', 'picture-url',
                   'public-profile-url', 'site-standard-profile-request']
@@ -76,7 +80,7 @@ class responder(OAuth1):
         return result_data
 
 
-class api():
+class api(object):
     def __init__(self, account):
         self.config = get_oauth_config(domain)
         self.account = account
@@ -91,6 +95,10 @@ class api():
         self.consumer = oauth.Consumer(key=self.consumer_key,
                                        secret=self.consumer_secret)
         self.sigmethod = oauth.SignatureMethod_HMAC_SHA1()
+
+    @classmethod
+    def get_name(cls):
+        return domain
 
     def rawcall(self, url, body=None, method="GET"):
         client = oauth.Client(self.consumer, self.oauth_token)

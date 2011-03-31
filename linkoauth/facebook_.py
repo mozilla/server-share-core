@@ -136,6 +136,10 @@ class responder(OAuth2):
      def __init__(self):
           OAuth2.__init__(self, domain)
 
+     @classmethod
+     def get_name(cls):
+          return cls.domain
+
      def _get_credentials(self, access_token):
           profile_url = config.get("oauth.facebook.com.profile", self.profile_url)
           fields = 'id,first_name,last_name,name,link,birthday,email,website,verified,picture,gender,timezone'
@@ -159,12 +163,16 @@ class responder(OAuth2):
 
           return result_data
 
-class api():
+class api(object):
      def __init__(self, account):
           self.access_token = account.get('oauth_token')
           if not self.access_token:
                raise OAuthKeysException()
-     
+
+     @classmethod
+     def get_name(cls):
+          return domain
+
      def _make_error(self, client, data, resp):
           # Facebook makes error handling fun!  So much for standards.
           # handle the various error mechanisms they deliver and hope
