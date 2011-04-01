@@ -94,7 +94,6 @@ def setup_config(appconfig):
     config.push_process_config(appconfig)
 
 
-
 def _cached_template(template_name, render_func, ns_options=(),
                     cache_key=None, cache_type=None, cache_expire=None,
                     **kwargs):

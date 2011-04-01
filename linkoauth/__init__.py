@@ -69,8 +69,8 @@ Responder.register(yahoo_.responder)
 Responder.register(linkedin_.responder)
 
 
-def get_responder(domain):
-    return Responder.get(domain)
+def get_responder(domain, **kw):
+    return Responder.get(domain, **kw)
 
 
 class Requester(PluginRegistry):
@@ -93,13 +93,13 @@ class Requester(PluginRegistry):
 # pre-register provided backends
 Requester.register(twitter_.api)
 Requester.register(facebook_.api)
-Requester.register(google_.api)
+Requester.register(google_.GoogleRequester)
 Requester.register(yahoo_.api)
 Requester.register(linkedin_.api)
 
 
-def get_requester(domain, account):
-    return Requester.get(domain, account=account)
+def get_requester(domain, account, **kw):
+    return Requester.get(domain, account=account, **kw)
 
 
 #

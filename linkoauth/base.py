@@ -153,3 +153,22 @@ class OAuth2(object):
 
     def _get_credentials(self, access_token):
         return access_token
+
+
+class BaseRequester(object):
+    """Provides the basic services status DB feedback behavior
+    """
+    def __init__(self, domain, account, status_callback=None):
+        self.account = account
+        self.domain = domain
+        self.scallback = status_callback
+
+    def _failure(self):
+        if self.scallback is None:
+            return
+        self.scallback(self.domain, False)
+
+    def _success(self):
+        if self.scallback is None:
+            return
+        self.scallback(self.domain, True)

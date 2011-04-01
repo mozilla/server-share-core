@@ -30,6 +30,8 @@ Google Apps using OAuth2.
 """
 import os
 import urlparse
+import socket
+
 from openid.extensions import ax, pape
 from openid.consumer import consumer
 from openid import oidutil
@@ -58,7 +60,7 @@ from linkoauth.oid_extensions import OAuthRequest
 from linkoauth.oid_extensions import UIRequest
 from linkoauth.openidconsumer import ax_attributes, attributes
 from linkoauth.openidconsumer import OpenIDResponder
-from linkoauth.base import get_oauth_config, OAuthKeysException
+from linkoauth.base import get_oauth_config, OAuthKeysException, BaseRequester
 from linkoauth.protocap import ProtocolCapturingBase, OAuth2Requestor
 
 GOOGLE_OAUTH = 'https://www.google.com/accounts/OAuthGetAccessToken'
@@ -120,7 +122,6 @@ class responder(OpenIDResponder):
         authentication.
 
         """
-
         OpenIDResponder.__init__(self, domain)
         self.consumer_key = str(self.config.get('consumer_key'))
         self.consumer_secret = str(self.config.get('consumer_secret'))
@@ -305,12 +306,14 @@ class SMTPRequestorImpl(SMTP, ProtocolCapturingBase):
 
 SMTPRequestor = SMTPRequestorImpl
 
-class api(object):
-    def __init__(self, account):
+
+class GoogleRequester(BaseRequester):
+    def __init__(self, account, status_callback=None):
+        super(GoogleRequester, self).__init__(domain, account,
+                                              status_callback)
         self.host = "smtp.gmail.com"
         self.port = 587
         self.config = get_oauth_config(domain)
-        self.account = account
         try:
             self.oauth_token = oauth.Token(
                     key=account.get('oauth_token'),
@@ -465,6 +468,11 @@ class api(object):
                     server.save_capture("ValueError sending email")
                     error = {"provider": self.host,
                              "message": str(exc)}
+                except socket.timeout, exc:
+                    self._failure()
+                    server.save_capture('Timeout sending email')
+                    error = {"provider": self.host,
+                             "message": str(exc)}
             finally:
                 try:
                     server.quit()
@@ -483,8 +491,11 @@ class api(object):
                 server.save_capture("early smtp exception")
             error = {"provider": self.host,
                      "message": str(exc)}
+
         if error is None:
+            self._success()
             result = {"status": "message sent"}
+
         return result, error
 
     def getgroup_id(self, group):
