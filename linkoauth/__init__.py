@@ -91,10 +91,10 @@ class Requester(PluginRegistry):
 
 
 # pre-register provided backends
-Requester.register(twitter_.api)
+Requester.register(twitter_.TwitterRequester)
 Requester.register(facebook_.FacebookRequester)
 Requester.register(google_.GoogleRequester)
-Requester.register(yahoo_.api)
+Requester.register(yahoo_.YahooRequester)
 Requester.register(linkedin_.api)
 
 

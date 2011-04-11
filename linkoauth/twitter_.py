@@ -28,7 +28,8 @@ import logging
 from urllib2 import URLError
 
 from linkoauth.util import asbool
-from linkoauth.base import OAuth1, get_oauth_config, OAuthKeysException
+from linkoauth.base import (OAuth1, get_oauth_config, OAuthKeysException,
+                            BaseRequester)
 
 from twitter.oauth import OAuth
 from twitter.api import Twitter, TwitterHTTPError
@@ -123,8 +124,11 @@ class responder(OAuth1):
         return result_data
 
 
-class api(object):
-    def __init__(self, account=None, oauth_token=None, oauth_token_secret=None):
+class TwitterRequester(BaseRequester):
+    def __init__(self, account=None, oauth_token=None, oauth_token_secret=None,
+                 status_callback=None):
+        super(TwitterRequester, self).__init__(domain, account,
+                                               status_callback)
         self.oauth_token = account and account.get('oauth_token') or oauth_token
         self.oauth_token_secret = account and account.get('oauth_token_secret') or oauth_token_secret
         if not self.oauth_token or not self.oauth_token_secret:
@@ -204,10 +208,13 @@ class api(object):
             error = self._twitter_exc_to_error(exc)
         except URLError, e:
             # connection timeouts when twitter is unavailable?
+            self._failure()
             error = {
                 'provider': domain,
                 'message': e.args[0]
             }
+        else:
+            self._success()
         return result, error
 
     def profile(self):
@@ -249,4 +256,7 @@ class api(object):
                 'provider': domain,
                 'message': e.args[0]
             }
+            self._failure()
+        else:
+            self._success()
         return result, error
