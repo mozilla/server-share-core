@@ -11,6 +11,8 @@ import logging
 
 from linkoauth.util import config, redirect, asbool, build_url
 from linkoauth.protocap import HttpRequestor
+from linkoauth.errors import BadVersionError
+
 
 log = logging.getLogger("oauth.base")
 
@@ -43,7 +45,8 @@ class OAuth1(object):
         self.authorization_url = self.config.get('authorize')
         self.version = int(self.config.get('version', '1'))
         self.scope = self.config.get('scope', None)
-        assert self.version == 1
+        if self.version != 1:
+            raise BadVersionError(self.version)
         self.consumer_key = self.config.get('consumer_key')
         self.consumer_secret = self.config.get('consumer_secret')
         self.consumer = oauth.Consumer(self.consumer_key, self.consumer_secret)
@@ -111,7 +114,8 @@ class OAuth2(object):
         self.access_token_url = self.config.get('access')
         self.authorization_url = self.config.get('authorize')
         self.version = int(self.config.get('version', '2'))
-        assert self.version == 2
+        if self.version != 2:
+            raise BadVersionError(self.version)
         self.app_id = self.config.get('app_id')
         self.app_secret = self.config.get('app_secret')
         self.scope = self.config.get('scope', None)
