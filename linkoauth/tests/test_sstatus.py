@@ -20,6 +20,7 @@
 #
 # Contributor(s): Tarek Ziade <tarek@ziade.org>
 #
+import time
 import unittest
 from linkoauth.sstatus import ServicesStatus, ServicesStatusMiddleware
 
@@ -106,3 +107,19 @@ class TestServiceStatus(unittest.TestCase):
         self.services.enable('a')
         res = app(request, start_response)
         self.assertEqual(res[0], 'Hello World')
+
+    def test_ttl(self):
+        services = ServicesStatus(['d'], ttl=1)
+        try:
+            for i in range(10):
+                services.update_status('d', True)
+
+            status = self.services.get_status('d')
+            self.assertEqual(status, (True, 10, 0))
+
+            time.sleep(1.)
+            status = self.services.get_status('d')
+            self.assertEqual(status, (True, 0, 0))
+
+        finally:
+            services.initialize('d')

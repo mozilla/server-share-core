@@ -46,6 +46,7 @@ The statuses are saved in a membase backend that can be replicated around
 using the peer-to-peer replication feature.
 """
 from pylibmc import Client, SomeErrors, WriteError
+from _pylibmc import NotFound
 from linkoauth.errors import BackendError
 
 
@@ -85,8 +86,10 @@ class ServicesStatus(object):
         # to do a single memcached call here
         try:
             self._cache.set(_key('service', service, 'on'), True)
-            self._cache.set(_key('service', service, 'succ'), 0)
-            self._cache.set(_key('service', service, 'fail'), 0)
+            self._cache.set(_key('service', service, 'succ'), 0,
+                            time=self.ttl)
+            self._cache.set(_key('service', service, 'fail'), 0,
+                            time=self.ttl)
             return True
         except WriteError:
             raise StatusWriteError()
@@ -107,7 +110,13 @@ class ServicesStatus(object):
         try:
             enabled = self._cache.get(_key('service', service, 'on'))
             succ = self._cache.get(_key('service', service, 'succ'))
+            if succ is None:
+                succ = 0
+
             fail = self._cache.get(_key('service', service, 'fail'))
+            if fail is None:
+                fail = 0
+
             return enabled, succ, fail
         except SomeErrors:
             # could not read the status
@@ -116,11 +125,18 @@ class ServicesStatus(object):
     def update_status(self, service, success):
         if success:
             key = _key('service', service, 'succ')
+            other_key = _key('service', service, 'fail')
         else:
             key = _key('service', service, 'fail')
+            other_key = _key('service', service, 'succ')
 
         try:
             return self._cache.incr(key)
+        except NotFound:
+            # the key ttl-ed
+            self._cache.set(key, 1, time=self.ttl)
+            self._cache.set(other_key, 0, time=self.ttl)
+            return 1
         except WriteError:
             raise StatusWriteError()
 
