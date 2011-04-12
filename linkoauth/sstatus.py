@@ -166,7 +166,13 @@ class ServicesStatusMiddleware(object):
             index = -1
 
         if index != -1:
-            on, succ, fail = self._status_checker.get_status(target_service)
+            try:
+                on, succ, fail = \
+                    self._status_checker.get_status(target_service)
+            except StatusReadError:
+                # could not read the status
+                on, succ, fail = True, 0, 0
+
             if not on:
                 return self._503(start_response)
 
