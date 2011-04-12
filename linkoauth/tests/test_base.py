@@ -79,6 +79,11 @@ class TestBasics(unittest.TestCase):
 
     def test_registery(self):
         message = ''
+        share_types = {
+            'facebook.com': 'wall',
+            'twitter.com': 'direct',
+            'linkedin.com': 'contact',
+        }
         args = {'to': 'tarek@ziade.org',
                 'subject': 'xxx',
                 'title': 'the title',
@@ -89,12 +94,12 @@ class TestBasics(unittest.TestCase):
         # just a sanity check to see if every oauth backend
         # can be instanciated and send messages
         #
-        for provider in get_providers():
-            provider = get_provider(provider)
+        for provname in get_providers():
+            provider = get_provider(provname)
             api = provider.api(_ACCOUNT)
-            res, error = api.sendmessage(message, args)
-            if res is None:
-                import pdb; pdb.set_trace()
-                api.sendmessage(message, args)
-
+            this_args = args.copy()
+            if provname in share_types:
+                this_args['shareType'] = share_types[provname]
+            res, error = api.sendmessage(message, this_args)
+            self.assertFalse(error, str(error))
             self.assertTrue(res['status'] in (200, 'message sent'))
