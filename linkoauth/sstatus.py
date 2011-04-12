@@ -45,8 +45,17 @@ This module provides:
 The statuses are saved in a membase backend that can be replicated around
 using the peer-to-peer replication feature.
 """
-from pylibmc import Client
+from pylibmc import Client, SomeErrors, WriteError
 from linkoauth.errors import BackendError
+
+
+class StatusReadError(Exception):
+    pass
+
+
+class StatusWriteError(Exception):
+    pass
+
 
 
 def _key(*args):
@@ -63,28 +72,46 @@ class ServicesStatus(object):
         self._cache.behaviors = {"no_block": True}
         for service in services:
             # initialize if not found
-            enabled = self._cache.get(_key('service', service, 'on'))
+            try:
+                enabled = self._cache.get(_key('service', service, 'on'))
+            except SomeErrors:
+                raise StatusReadError()
+
             if enabled is None:
                 self.initialize(service)
 
     def initialize(self, service):
         # XXX see if one key is better wrt R/W numbers
         # to do a single memcached call here
-        self._cache.set(_key('service', service, 'on'), True)
-        self._cache.set(_key('service', service, 'succ'), 0)
-        self._cache.set(_key('service', service, 'fail'), 0)
+        try:
+            self._cache.set(_key('service', service, 'on'), True)
+            self._cache.set(_key('service', service, 'succ'), 0)
+            self._cache.set(_key('service', service, 'fail'), 0)
+            return True
+        except WriteError:
+            raise StatusWriteError()
 
     def enable(self, service):
-        self._cache.set(_key('service', service, 'on'), True)
+        try:
+            self._cache.set(_key('service', service, 'on'), True)
+        except WriteError:
+            raise StatusWriteError()
 
     def disable(self, service):
-        self._cache.set(_key('service', service, 'on'), False)
+        try:
+            self._cache.set(_key('service', service, 'on'), False)
+        except WriteError:
+            raise StatusWriteError()
 
     def get_status(self, service):
-        enabled = self._cache.get(_key('service', service, 'on'))
-        succ = self._cache.get(_key('service', service, 'succ'))
-        fail = self._cache.get(_key('service', service, 'fail'))
-        return enabled, succ, fail
+        try:
+            enabled = self._cache.get(_key('service', service, 'on'))
+            succ = self._cache.get(_key('service', service, 'succ'))
+            fail = self._cache.get(_key('service', service, 'fail'))
+            return enabled, succ, fail
+        except SomeErrors:
+            # could not read the status
+            raise StatusReadError()
 
     def update_status(self, service, success):
         if success:
@@ -92,7 +119,10 @@ class ServicesStatus(object):
         else:
             key = _key('service', service, 'fail')
 
-        return self._cache.incr(key)
+        try:
+            return self._cache.incr(key)
+        except WriteError:
+            raise StatusWriteError()
 
 
 class ServicesStatusMiddleware(object):
