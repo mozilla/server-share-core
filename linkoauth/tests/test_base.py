@@ -6,6 +6,7 @@ import urllib2
 from linkoauth.util import setup_config
 from linkoauth import get_providers, get_provider, get_requester
 from linkoauth import google_
+from linkoauth import Services
 
 
 _ACCOUNT = {'oauth_token': 'xxx',
@@ -98,7 +99,7 @@ class TestBasics(unittest.TestCase):
 
             self.assertTrue(res['status'] in (200, 'message sent'))
 
-    def test_fallbacks(self):
+    def test_callbacks(self):
         message = ''
         args = {'to': 'tarek@ziade.org',
                 'subject': 'xxx',
@@ -107,17 +108,11 @@ class TestBasics(unittest.TestCase):
                 'link': 'http://example.com',
                 'shorturl': 'http://example.com'}
 
-        results = {'google.com': {'succ': 0, 'fail': 0}}
+        services = Services(['google.com'])
+        services.initialize('google.com')
 
-        def callback(domain, res):
-            if res:
-                results[domain]['succ'] += 1
-            else:
-                results[domain]['fail'] += 1
+        res, error = services.sendmessage('google.com', _ACCOUNT,
+                                          message, args)
 
-        google = get_requester('google.com', _ACCOUNT,
-                               status_callback=callback)
-
-        res, error = google.sendmessage(message, args)
-        self.assertEquals(results['google.com']['succ'], 1)
-
+        status = services.get_status('google.com')
+        self.assertEquals(status, (True, 1, 0))

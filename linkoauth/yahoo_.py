@@ -37,7 +37,7 @@ from linkoauth.oid_extensions import OAuthRequest
 from linkoauth.openidconsumer import ax_attributes, attributes
 from linkoauth.openidconsumer import OpenIDResponder
 from linkoauth.base import (get_oauth_config, OAuthKeysException,
-                            ServiceUnavailableException, BaseRequester)
+                            ServiceUnavailableException)
 from linkoauth.protocap import HttpRequestor
 
 YAHOO_OAUTH = 'https://api.login.yahoo.com/oauth/v2/get_token'
@@ -46,7 +46,7 @@ domain = 'yahoo.com'
 log = logging.getLogger(domain)
 
 
-class responder(OpenIDResponder):
+class YahooResponder(OpenIDResponder):
 
     domain = 'yahoo.com'
 
@@ -59,6 +59,7 @@ class responder(OpenIDResponder):
 
         """
         OpenIDResponder.__init__(self, domain)
+        self.domain = domain
         self.consumer_key = self.config.get('consumer_key')
         self.consumer_secret = self.config.get('consumer_secret')
         if not asbool(self.config.get('verified')):
@@ -109,15 +110,15 @@ class responder(OpenIDResponder):
         return result_data
 
 
-class YahooRequester(BaseRequester):
+class YahooRequester(object):
     endpoints = {
         "mail":"http://mail.yahooapis.com/ws/mail/v1.1/jsonrpc",
         "contacts":"http://social.yahooapis.com/v1/user/%s/contacts"
     }
 
-    def __init__(self, account, status_callback=None):
-        super(YahooRequester, self).__init__(domain, account,
-                                             status_callback)
+    def __init__(self, account):
+        self.account = account
+        self.domain = domain
         self.config = get_oauth_config(domain)
         self.account = account
         try:

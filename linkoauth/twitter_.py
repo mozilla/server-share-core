@@ -28,8 +28,7 @@ import logging
 from urllib2 import URLError
 
 from linkoauth.util import asbool
-from linkoauth.base import (OAuth1, get_oauth_config, OAuthKeysException,
-                            BaseRequester)
+from linkoauth.base import OAuth1, get_oauth_config, OAuthKeysException
 
 from twitter.oauth import OAuth
 from twitter.api import Twitter, TwitterHTTPError
@@ -87,12 +86,13 @@ def twitter_to_poco(user):
 
     return poco
 
-class responder(OAuth1):
+class TwitterResponder(OAuth1):
     """Handle Twitter OAuth login/authentication"""
     domain = 'twitter.com'
 
     def __init__(self):
         OAuth1.__init__(self, domain)
+        self.domain = domain
 
     @classmethod
     def get_name(cls):
@@ -124,11 +124,10 @@ class responder(OAuth1):
         return result_data
 
 
-class TwitterRequester(BaseRequester):
-    def __init__(self, account=None, oauth_token=None, oauth_token_secret=None,
-                 status_callback=None):
-        super(TwitterRequester, self).__init__(domain, account,
-                                               status_callback)
+class TwitterRequester(object):
+    def __init__(self, account=None, oauth_token=None, oauth_token_secret=None):
+        self.account = account
+        self.domain = domain
         self.oauth_token = account and account.get('oauth_token') or oauth_token
         self.oauth_token_secret = account and account.get('oauth_token_secret') or oauth_token_secret
         if not self.oauth_token or not self.oauth_token_secret:
@@ -208,13 +207,10 @@ class TwitterRequester(BaseRequester):
             error = self._twitter_exc_to_error(exc)
         except URLError, e:
             # connection timeouts when twitter is unavailable?
-            self._failure()
             error = {
                 'provider': domain,
                 'message': e.args[0]
             }
-        else:
-            self._success()
         return result, error
 
     def profile(self):
@@ -256,7 +252,4 @@ class TwitterRequester(BaseRequester):
                 'provider': domain,
                 'message': e.args[0]
             }
-            self._failure()
-        else:
-            self._success()
         return result, error

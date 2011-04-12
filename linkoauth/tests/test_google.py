@@ -29,6 +29,7 @@ import urllib2
 from linkoauth.util import setup_config
 from linkoauth import get_requester
 from linkoauth import google_
+from linkoauth import Services
 
 
 _ACCOUNT = {'oauth_token': 'xxx',
@@ -116,26 +117,23 @@ class TestBasics(unittest.TestCase):
                 'link': 'http://example.com',
                 'shorturl': 'http://example.com'}
 
-        results = {'google.com': {'succ': 0, 'fail': 0}}
-
-        def callback(domain, res):
-            if res:
-                results[domain]['succ'] += 1
-            else:
-                results[domain]['fail'] += 1
-
-        google = get_requester('google.com', _ACCOUNT,
-                               status_callback=callback)
+        services = Services(['google.com'])
+        services.initialize('google.com')
 
         # this sends a success to the callback
-        res, error = google.sendmessage(message, args)
-        self.assertEquals(results['google.com']['succ'], 1)
+        res, error = services.sendmessage('google.com', _ACCOUNT,
+                                          message, args)
+
+        status = services.get_status('google.com')
+        self.assertEquals(status, (True, 1, 0))
 
         # let's break SMTP
         _SMTP.working = False
         try:
-            res, error = google.sendmessage(message, args)
+            res, error = services.sendmessage('google.com', _ACCOUNT,
+                                              message, args)
         finally:
             _SMTP.working = True
 
-        self.assertEquals(results['google.com']['fail'], 1)
+        status = services.get_status('google.com')
+        self.assertEquals(status, (True, 1, 1))

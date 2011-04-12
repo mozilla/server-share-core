@@ -60,8 +60,10 @@ from linkoauth.oid_extensions import OAuthRequest
 from linkoauth.oid_extensions import UIRequest
 from linkoauth.openidconsumer import ax_attributes, attributes
 from linkoauth.openidconsumer import OpenIDResponder
-from linkoauth.base import get_oauth_config, OAuthKeysException, BaseRequester
+from linkoauth.base import get_oauth_config, OAuthKeysException
 from linkoauth.protocap import ProtocolCapturingBase, OAuth2Requestor
+from linkoauth.errors import BackendError
+
 
 GOOGLE_OAUTH = 'https://www.google.com/accounts/OAuthGetAccessToken'
 
@@ -109,7 +111,7 @@ class GoogleConsumer(consumer.GenericConsumer):
         return modeMethod(message, endpoint, return_to)
 
 
-class responder(OpenIDResponder):
+class GoogleResponder(OpenIDResponder):
 
     domain = 'google.com'
 
@@ -307,10 +309,10 @@ class SMTPRequestorImpl(SMTP, ProtocolCapturingBase):
 SMTPRequestor = SMTPRequestorImpl
 
 
-class GoogleRequester(BaseRequester):
-    def __init__(self, account, status_callback=None):
-        super(GoogleRequester, self).__init__(domain, account,
-                                              status_callback)
+class GoogleRequester(object):
+    def __init__(self, account):
+        self.domain = domain
+        self.account = account
         self.host = "smtp.gmail.com"
         self.port = 587
         self.config = get_oauth_config(domain)
@@ -469,10 +471,10 @@ class GoogleRequester(BaseRequester):
                     error = {"provider": self.host,
                              "message": str(exc)}
                 except socket.timeout, exc:
-                    self._failure()
                     server.save_capture('Timeout sending email')
                     error = {"provider": self.host,
                              "message": str(exc)}
+                    raise BackendError(error)
             finally:
                 try:
                     server.quit()
@@ -493,7 +495,6 @@ class GoogleRequester(BaseRequester):
                      "message": str(exc)}
 
         if error is None:
-            self._success()
             result = {"status": "message sent"}
 
         return result, error

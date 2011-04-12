@@ -21,9 +21,14 @@
 # Contributor(s):
 #
 import abc
+
+from webob.exc import HTTPRedirection
 from services.pluginreg import PluginRegistry
 
 from linkoauth import facebook_, google_, twitter_, yahoo_, linkedin_
+from linkoauth.sstatus import ServicesStatus
+from linkoauth.errors import BackendError
+
 #from linkoauth.live_ import LiveResponder
 #from linkoauth.openidconsumer import OpenIDResponder
 
@@ -62,12 +67,11 @@ class Responder(PluginRegistry):
         """
 
 # pre-register provided backends
-Responder.register(twitter_.responder)
-Responder.register(facebook_.responder)
-Responder.register(google_.responder)
-Responder.register(yahoo_.responder)
+Responder.register(twitter_.TwitterResponder)
+Responder.register(facebook_.FacebookResponder)
+Responder.register(google_.GoogleResponder)
+Responder.register(yahoo_.YahooResponder)
 Responder.register(linkedin_.responder)
-
 
 def get_responder(domain, **kw):
     return Responder.get(domain, **kw)
@@ -100,6 +104,42 @@ Requester.register(linkedin_.api)
 
 def get_requester(domain, account, **kw):
     return Requester.get(domain, account=account, **kw)
+
+
+# high-level
+class Services(ServicesStatus):
+
+    def __init__(self, services, servers=None, ttl=600):
+        ServicesStatus.__init__(self, services, servers, ttl)
+
+    def _updated(func):
+        def __updated(self, domain, *args, **kw):
+            try:
+                res = func(self, domain, *args, **kw)
+            except BackendError, e:
+                self.update_status(domain, False)
+                return None, e.args[0]
+            except HTTPRedirection:
+                self.update_status(domain, True)
+                raise
+            else:
+                if len(res) == 2 and res[0] is not None:
+                    self.update_status(domain, True)
+            return res
+        return __updated
+
+    @_updated
+    def sendmessage(self, domain, account, message, options={}, **kw):
+        return get_requester(domain, account).sendmessage(message, options,
+                                                          **kw)
+
+    @_updated
+    def getcontacts(self, domain, account, start=0, page=25, group=None, **kw):
+        return get_requester(domain, account, **kw).getcontacts(start, page, group)
+
+    @_updated
+    def request_access(self, domain, request, url, session, **kw):
+        return get_responder(domain, **kw).request_access(request, url, session)
 
 
 #

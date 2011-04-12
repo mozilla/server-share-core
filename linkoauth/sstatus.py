@@ -46,6 +46,7 @@ The statuses are saved in a membase backend that can be replicated around
 using the peer-to-peer replication feature.
 """
 from pylibmc import Client
+from linkoauth.errors import BackendError
 
 
 def _key(*args):

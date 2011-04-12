@@ -30,7 +30,7 @@ import random
 import copy
 import logging
 
-from linkoauth.base import OAuth2, OAuthKeysException, BaseRequester
+from linkoauth.base import OAuth2, OAuthKeysException
 from linkoauth.util import build_url, config
 from linkoauth.protocap import HttpRequestor
 
@@ -127,7 +127,7 @@ def extract_fb_data(data):
      return profile
 
 
-class responder(OAuth2):
+class FacebookResponder(OAuth2):
      """Handle Facebook OAuth login/authentication"""
 
      profile_url = 'https://graph.facebook.com/me'
@@ -163,11 +163,11 @@ class responder(OAuth2):
 
           return result_data
 
-class FacebookRequester(BaseRequester):
-     def __init__(self, account, status_callback=None):
-          super(FacebookRequester, self).__init__(domain, account,
-                                                  status_callback)
 
+class FacebookRequester(object):
+     def __init__(self, account):
+          self.domain = domain
+          self.account = account
           self.access_token = account.get('oauth_token')
           if not self.access_token:
                raise OAuthKeysException()
