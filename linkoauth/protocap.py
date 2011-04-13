@@ -7,6 +7,7 @@ import logging
 import urlparse
 
 import oauth2
+from linkoauth.errors import OptionError
 from linkoauth.util import config, redirect, asbool
 
 log = logging.getLogger(__name__)
@@ -15,7 +16,8 @@ log = logging.getLogger(__name__)
 class ProtocolCapturingBase(object):
     pc_protocol = None # should be set by sub-classes
     def __init__(self, host=None):
-        assert self.pc_protocol is not None # set this on the subclass!
+        if self.pc_protocol is None:
+            raise OptionError('The protocol must be set by the subclass')
 
     def pc_get_host(self):
         raise NotImplementedError() # subclasses must provide this

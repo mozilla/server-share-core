@@ -39,6 +39,8 @@ from linkoauth.openidconsumer import OpenIDResponder
 from linkoauth.base import (get_oauth_config, OAuthKeysException,
                             ServiceUnavailableException)
 from linkoauth.protocap import HttpRequestor
+from linkoauth.errors import OptionError
+
 
 YAHOO_OAUTH = 'https://api.login.yahoo.com/oauth/v2/get_token'
 
@@ -254,7 +256,8 @@ class YahooRequester(object):
             # expect normal email address formats, parse them
             to_.append({'name': addr[0], 'email': addr[1]})
 
-        assert to_ # we caught all cases where it could now be empty.
+        if len(to_) == 0:
+            raise OptionError('the To header cannot be empty')
 
         subject = options.get('subject', config.get('share_subject', 'A web link has been shared with you'))
         title = options.get('title', options.get('link', options.get('shorturl', '')))

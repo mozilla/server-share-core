@@ -62,8 +62,7 @@ from linkoauth.openidconsumer import ax_attributes, attributes
 from linkoauth.openidconsumer import OpenIDResponder
 from linkoauth.base import get_oauth_config, OAuthKeysException
 from linkoauth.protocap import ProtocolCapturingBase, OAuth2Requestor
-from linkoauth.errors import BackendError
-
+from linkoauth.errors import BackendError, OptionError
 
 GOOGLE_OAUTH = 'https://www.google.com/accounts/OAuthGetAccessToken'
 
@@ -363,7 +362,9 @@ class GoogleRequester(object):
             else:
                 to_ = Header(addr[1], 'utf-8').encode()
             to_headers.append(to_)
-        assert to_headers  # we caught all cases where it could now be empty.
+
+        if len(to_headers) == 0:
+            raise OptionError('the To header cannot be empty')
 
         subject = options.get('subject', config.get('share_subject',
                               'A web link has been shared with you'))

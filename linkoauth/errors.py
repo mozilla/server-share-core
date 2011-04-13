@@ -21,7 +21,6 @@
 # Contributor(s): Tarek Ziade <tarek@mozilla.com>
 #
 
-
 class BadVersionError(Exception):
     pass
 
@@ -34,3 +33,6 @@ class BackendError(Exception):
 class DomainNotRegisteredError(Exception):
     pass
 
+
+class OptionError(Exception):
+    pass
