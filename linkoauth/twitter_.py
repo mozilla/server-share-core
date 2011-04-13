@@ -27,11 +27,10 @@ import json
 import logging
 from urllib2 import URLError
 
+import oauth2 as oauth
+
 from linkoauth.util import asbool
 from linkoauth.base import OAuth1, get_oauth_config, OAuthKeysException
-
-from twitter.oauth import OAuth
-from twitter.api import Twitter, TwitterHTTPError
 
 domain = 'twitter.com'
 log = logging.getLogger(domain)
@@ -120,124 +119,121 @@ class responder(OAuth1):
 
 class api():
     def __init__(self, account=None, oauth_token=None, oauth_token_secret=None):
-        self.oauth_token = account and account.get('oauth_token') or oauth_token
-        self.oauth_token_secret = account and account.get('oauth_token_secret') or oauth_token_secret
-        if not self.oauth_token or not self.oauth_token_secret:
-            raise OAuthKeysException()
-
         self.config = get_oauth_config(domain)
+        oauth_token = account and account.get('oauth_token') or oauth_token
+        oauth_token_secret = account and account.get('oauth_token_secret') or oauth_token_secret
 
-    def api(self):
-        auth = OAuth(token=self.oauth_token,
-                     token_secret=self.oauth_token_secret,
-                     consumer_key=self.config['consumer_key'],
-                     consumer_secret=self.config['consumer_secret'])
-        kwargs = {'auth': auth}
+        self.account = account
         try:
-            kwargs['domain'] = self.config['host']
-        except KeyError:
-            pass
-        try:
-            kwargs['secure'] = asbool(self.config['secure'])
-        except KeyError:
-            pass
-        return Twitter(**kwargs)
+            self.oauth_token = oauth.Token(key=oauth_token, secret=oauth_token_secret)
+        except ValueError, e:
+            # missing oauth tokens, raise our own exception
+            raise OAuthKeysException(str(e))
+        self.consumer_key = self.config.get('consumer_key')
+        self.consumer_secret = self.config.get('consumer_secret')
+        self.consumer = oauth.Consumer(key=self.consumer_key, secret=self.consumer_secret)
+        self.sigmethod = oauth.SignatureMethod_HMAC_SHA1()
 
-    def rawcall(self, url, body):
-        raise Exception("NOT IMPLEMENTED")
+    def _make_error(self, data, resp):
+        status = int(resp['status'])
 
-    def _twitter_exc_to_error(self, exc):
-        msg = "TwitterHTTPError %d" % (exc.e.code)
-        if exc.e.code != 404:
-            error_response = exc.e.read()
-            try:
-                details = json.loads(error_response)
-            except ValueError:
-                # sometimes the error does not contain a json object, let's
-                # try to see what it is
-                msg = error_response
-                log.error("twitter returned non-json in an error response: %s", msg)
-            else:
-                if 'error' in details:
-                    msg = details['error']
-                else:
-                    msg = str(details)
-        return {'provider': domain,
-                'message': msg,
-                'status': exc.e.code
-        }
+        # this should be retreived from www-authenticate if provided there,
+        # see above comments
+        code = data.get('error_code', 0)
+        if isinstance(data.get('error', None), dict):
+            error = copy.copy(data['error'])
+        # fallback to their rest error message
+        elif 'error' in data:
+            error = {
+                'message': data.get('error', 'it\'s an error, kthx'),
+            }
+        # who knows, some other abberation 
+        else:
+            error = {
+                'message': "expectedly, an unexpected twitter error: %r"% (data,),
+            }
+            log.error(error['message'])
+
+        error.update({'code': code,
+                      'provider': domain,
+                      'status': status})
+        return error
+
+    def rawcall(self, url, params=None, method="GET"):
+        client = oauth.Client(self.consumer, self.oauth_token)
+
+        oauth_request = oauth.Request.from_consumer_and_token(self.consumer,
+                                                              token=self.oauth_token,
+                                                              http_url=url,
+                                                              http_method=method,
+                                                              parameters=params)
+        oauth_request.sign_request(self.sigmethod, self.consumer, self.oauth_token)
+
+        if method == "POST":
+            encoded_post_data = oauth_request.to_postdata()
+        else:
+            encoded_post_data = ''
+            url = oauth_request.to_url()
+
+        resp, content = client.request(url, method, body=encoded_post_data)
+
+        data = content and json.loads(content) or resp
+
+        result = error = None
+        status = int(resp['status'])
+        if status < 200 or status >= 300:
+            error = self._make_error(data, resp)
+        else:
+            result = data
+        return result, error
 
     def sendmessage(self, message, options={}):
         result = error = None
-        try:
-            # insert the url if it is not already in the message
-            longurl = options.get('link')
-            shorturl = options.get('shorturl')
-            if shorturl:
-                # if the long url is in the message body, replace it with
-                # the short url, otherwise just make sure shorturl is in
-                # the body.
-                if longurl and longurl in message:
-                    message = message.replace(longurl, shorturl)
-                elif shorturl not in message:
-                    message += " %s" % shorturl
-            elif longurl and longurl not in message:
-                # some reason we dont have a short url, add the long url
-                message += " %s" % longurl
+        # insert the url if it is not already in the message
+        longurl = options.get('link')
+        shorturl = options.get('shorturl')
+        if shorturl:
+            # if the long url is in the message body, replace it with
+            # the short url, otherwise just make sure shorturl is in
+            # the body.
+            if longurl and longurl in message:
+                message = message.replace(longurl, shorturl)
+            elif shorturl not in message:
+                message += " %s" % shorturl
+        elif longurl and longurl not in message:
+            # some reason we dont have a short url, add the long url
+            message += " %s" % longurl
 
-            direct = options.get('to', None)
-            if direct:
-                result = self.api().direct_messages.new(text=message, user=direct)
-            else:
-                result = self.api().statuses.update(status=message)
-            result[domain] = result['id']
-        except TwitterHTTPError, exc:
-            error = self._twitter_exc_to_error(exc)
-        except URLError, e:
-            # connection timeouts when twitter is unavailable?
-            error = {
-                'provider': domain,
-                'message': e.args[0]
-            }
-        return result, error
+        direct = options.get('to', None)
+        if direct:
+            url = 'https://api.twitter.com/1/direct_messages/new.json'
+            body = { 'user': direct, 'text': message }
+        else:
+            url = 'https://api.twitter.com/1/statuses/update.json'
+            body = { 'status': message }
+        return self.rawcall(url, params=body, method="POST")
 
     def profile(self):
-        result = error = None
-        try:
-            result = self.api().account.verify_credentials()
-            result[domain] = result['id']
-        except TwitterHTTPError, exc:
-            error = self._twitter_exc_to_error(exc)
-        except URLError, e:
-            error = {
-                'provider': domain,
-                'message': e.args[0]
-            }
-        return result, error
+        url = 'https://api.twitter.com/1/account/verify_credentials.json'
+        return self.rawcall(url)
 
     def getcontacts(self, start=0, page=25, group=None):
+        url = 'https://api.twitter.com/1/statuses/followers.json?screen_name=%s' % self.account.get('username')
         # for twitter we get only those people who we follow and who follow us
         # since this data is used for direct messaging
         contacts = []
-        result = error = None
-        try:
-            followers = self.api().statuses.followers()
-            for follower in followers:
-                contacts.append(twitter_to_poco(follower))
 
-            connectedto = {
-                'entry': contacts,
-                'itemsPerPage': len(contacts),
-                'startIndex':   0,
-                'totalResults': len(contacts),
-            }
+        data, error = self.rawcall(url)
+        if error:
+            return None, error
+        for follower in data:
+            contacts.append(twitter_to_poco(follower))
 
-            return connectedto, None
-        except TwitterHTTPError, exc:
-            error = self._twitter_exc_to_error(exc)
-        except URLError, e:
-            error = {
-                'provider': domain,
-                'message': e.args[0]
-            }
-        return result, error
+        connectedto = {
+            'entry': contacts,
+            'itemsPerPage': len(contacts),
+            'startIndex':   0,
+            'totalResults': len(contacts),
+        }
+
+        return connectedto, None
