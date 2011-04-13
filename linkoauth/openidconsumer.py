@@ -29,7 +29,8 @@ from openid.store import memstore, filestore
 from openid import oidutil
 
 from linkoauth.util import config, redirect
-from linkoauth.base import get_oauth_config, AccessException
+from linkoauth.oauth import get_oauth_config
+from linkoauth.errors import AccessException
 
 
 log = logging.getLogger("oauth.openid")

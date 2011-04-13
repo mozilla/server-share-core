@@ -36,7 +36,7 @@ setup(
         "oauth2",
         "python-dateutil",
         "python-openid",
-        "gdata", # google api support
+        "gdata",   # google api support
         "twitter>=1.4.2",
         "Paste",
         "Mako",
@@ -45,10 +45,8 @@ setup(
         "simplejson",
         "nose",
         "pylibmc",
-        "Services"
-    ],
+        "Services"],
     packages=find_packages(exclude=['ez_setup']),
     include_package_data=True,
     test_suite='nose.collector',
-    zip_safe=False,
-)
+    zip_safe=False)

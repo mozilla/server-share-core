@@ -12,5 +12,6 @@ class TestUtil(unittest.TestCase):
                   'picture,gender,timezone')
 
         res = build_url(profile_url, access_token=access_token, fields=fields)
-        expect = 'https://graph.facebook.com/me?access_token=xxxx&fields=id%2Cf'
+        expect = \
+                'https://graph.facebook.com/me?access_token=xxxx&fields=id%2Cf'
         self.assertTrue(res.startswith(expect))

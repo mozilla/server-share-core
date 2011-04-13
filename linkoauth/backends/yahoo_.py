@@ -34,7 +34,7 @@ from linkoauth.util import asbool, render, safeHTML, literal, config
 from linkoauth.oid_extensions import OAuthRequest
 from linkoauth.openidconsumer import ax_attributes, attributes
 from linkoauth.openidconsumer import OpenIDResponder
-from linkoauth.base import get_oauth_config
+from linkoauth.oauth import get_oauth_config
 from linkoauth.protocap import HttpRequestor
 from linkoauth.errors import (OptionError, OAuthKeysException,
                               ServiceUnavailableException)

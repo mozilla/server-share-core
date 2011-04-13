@@ -26,7 +26,7 @@ import oauth2 as oauth
 import logging
 from rfc822 import AddressList
 
-from linkoauth.base import OAuth1, get_oauth_config
+from linkoauth.oauth import OAuth1, get_oauth_config
 from linkoauth.errors import OAuthKeysException
 from linkoauth.util import config, render, safeHTML, literal
 

@@ -22,7 +22,7 @@
 #
 import unittest
 
-from linkoauth import get_responder, get_requester
+from linkoauth.backends import get_responder, get_requester
 from linkoauth.util import setup_config
 
 
@@ -34,7 +34,6 @@ _CONFIG = {'oauth.yahoo.com.consumer_key': 'xxx',
            'oauth.twitter.com.consumer_secret': 'xxx'}
 
 
-
 class TestRegistry(unittest.TestCase):
 
     def setUp(self):
@@ -44,7 +43,6 @@ class TestRegistry(unittest.TestCase):
 
         account = {'oauth_token': 'xxx',
                    'oauth_token_secret': 'xxx'}
-
 
         for domain in ('google.com', 'twitter.com', 'facebook.com',
                        'yahoo.com', 'linkedin.com'):

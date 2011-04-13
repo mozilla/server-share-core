@@ -71,6 +71,7 @@ class TestServiceStatus(unittest.TestCase):
 
         responses = []
         request = FakeEnviron()
+
         def start_response(status, headers):
             responses.append((status, headers))
 

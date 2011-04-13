@@ -27,8 +27,7 @@ import json
 import urllib2
 
 from linkoauth.util import setup_config
-from linkoauth import get_requester
-from linkoauth import google_
+from linkoauth.backends import google_
 from linkoauth import Services
 
 

@@ -4,11 +4,9 @@ import json
 import urllib2
 
 from linkoauth.util import setup_config
-from linkoauth import get_requester
-from linkoauth import google_
+from linkoauth.backends import google_
 from linkoauth import Services
 from linkoauth.errors import DomainNotRegisteredError
-
 
 
 _ACCOUNT = {'oauth_token': 'xxx',
@@ -60,6 +58,7 @@ class _FakeResult(object):
         res = {'id': 123, 'status': 200}
         return json.dumps(res)
 
+
 def _urlopen(*args):
     return _FakeResult()
 
@@ -108,4 +107,3 @@ class TestBasics(unittest.TestCase):
         services = Services(['google.com'])
         self.assertRaises(DomainNotRegisteredError, services.sendmessage, 'a',
                           object(), '', '')
-

@@ -28,7 +28,7 @@ import logging
 from urllib2 import URLError
 
 from linkoauth.util import asbool
-from linkoauth.base import OAuth1, get_oauth_config
+from linkoauth.oauth import OAuth1, get_oauth_config
 from linkoauth.errors import OAuthKeysException
 
 from twitter.oauth import OAuth
