@@ -30,7 +30,8 @@ import random
 import copy
 import logging
 
-from linkoauth.base import OAuth2, OAuthKeysException
+from linkoauth.base import OAuth2
+from linkoauth.errors import OAuthKeysException
 from linkoauth.util import build_url, config
 from linkoauth.protocap import HttpRequestor
 

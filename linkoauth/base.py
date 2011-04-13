@@ -1,37 +1,51 @@
-# based on code from velruse
+# ***** BEGIN LICENSE BLOCK *****
+# Version: MPL 1.1
+#
+# The contents of this file are subject to the Mozilla Public License Version
+# 1.1 (the "License"); you may not use this file except in compliance with
+# the License. You may obtain a copy of the License at
+# http://www.mozilla.org/MPL/
+#
+# Software distributed under the License is distributed on an "AS IS" basis,
+# WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+# for the specific language governing rights and limitations under the
+# License.
+#
+# The Original Code is Raindrop.
+#
+# The Initial Developer of the Original Code is
+# Mozilla Messaging, Inc..
+# Portions created by the Initial Developer are Copyright (C) 2009
+# the Initial Developer. All Rights Reserved.
+#
+# Contributor(s): Tarek Ziade <tarek@mozilla.com>
+#
+"""
+based on code from velruse
+"""
 
 import urlparse
 try:
     from urlparse import parse_qs
 except ImportError:
     from cgi import parse_qs   # NOQA
-import json
-import oauth2 as oauth
 import logging
+
+import oauth2 as oauth
 
 from linkoauth.util import config, redirect, asbool, build_url
 from linkoauth.protocap import HttpRequestor
-from linkoauth.errors import BadVersionError
+from linkoauth.errors import BadVersionError, AccessException
 
 
 log = logging.getLogger("oauth.base")
 
 
-class OAuthKeysException(Exception):
-    pass
-
-class AccessException(Exception):
-    pass
-
-class ServiceUnavailableException(Exception):
-    def __init__(self, debug_message=None):
-        self.debug_message = debug_message
-
 def get_oauth_config(provider):
-    key = 'oauth.'+provider+'.'
+    key = 'oauth.%s.' % provider
     keylen = len(key)
     d = {}
-    for k,v in config.items():
+    for k, v in config.items():
         if k.startswith(key):
             d[k[keylen:]] = v
     return d
@@ -61,7 +75,7 @@ class OAuth1(object):
                                         provider=self.provider,
                                         qualified=True)}
         if self.scope:
-            params[ 'scope' ] = self.scope
+            params['scope'] = self.scope
 
         # We go through some shennanigans here to specify a callback url
         oauth_request = oauth.Request.from_consumer_and_token(self.consumer,
@@ -82,13 +96,16 @@ class OAuth1(object):
         session.save()
 
         # force_login is twitter specific
-        if self.provider == 'twitter.com' and asbool(request.POST.get('force_login')):
-            http_url=self.authorization_url+'?force_login=true'
+        if (self.provider == 'twitter.com' and
+            asbool(request.POST.get('force_login'))):
+            http_url = self.authorization_url + '?force_login=true'
         else:
-            http_url=self.authorization_url
+            http_url = self.authorization_url
 
         # Send the user to the oauth provider to authorize us
-        oauth_request = oauth.Request.from_token_and_callback(token=request_token, http_url=http_url)
+        oauth_request = \
+                oauth.Request.from_token_and_callback(token=request_token,
+                                                      http_url=http_url)
         return redirect(oauth_request.to_url())
 
     def verify(self, request, url, session):
@@ -124,8 +141,9 @@ class OAuth2(object):
         self.scope = self.config.get('scope', None)
 
     def request_access(self, request, url, session):
-        return_to = url(controller='account', action="verify", provider=self.provider,
-                           qualified=True)
+        return_to = url(controller='account', action="verify",
+                        provider=self.provider,
+                        qualified=True)
 
         loc = build_url(self.authorization_url, client_id=self.app_id,
                         scope=self.scope,
@@ -137,13 +155,14 @@ class OAuth2(object):
         if not code:
             error = request.params.get('error', '')
             reason = request.params.get('error_reason', '')
-            desc = request.params.get('error_description', 'No oauth code received')
+            desc = request.params.get('error_description',
+                                      'No oauth code received')
             err = "%s - %s - %s" % (error, reason, desc)
             log.info("%s: %s", self.provider, err)
             raise AccessException(err)
 
-        return_to = url(controller='account', action="verify", provider=self.provider,
-                           qualified=True)
+        return_to = url(controller='account', action="verify",
+                        provider=self.provider, qualified=True)
 
         access_url = build_url(self.access_token_url, client_id=self.app_id,
                 client_secret=self.app_secret, code=code,

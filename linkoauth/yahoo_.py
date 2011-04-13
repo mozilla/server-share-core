@@ -31,16 +31,14 @@ import copy
 from rfc822 import AddressList
 import logging
 
-from linkoauth.util import config
-from linkoauth.util import asbool, render, safeHTML, literal
+from linkoauth.util import asbool, render, safeHTML, literal, config
 from linkoauth.oid_extensions import OAuthRequest
 from linkoauth.openidconsumer import ax_attributes, attributes
 from linkoauth.openidconsumer import OpenIDResponder
-from linkoauth.base import (get_oauth_config, OAuthKeysException,
-                            ServiceUnavailableException)
+from linkoauth.base import get_oauth_config
 from linkoauth.protocap import HttpRequestor
-from linkoauth.errors import OptionError
-
+from linkoauth.errors import (OptionError, OAuthKeysException,
+                              ServiceUnavailableException)
 
 YAHOO_OAUTH = 'https://api.login.yahoo.com/oauth/v2/get_token'
 

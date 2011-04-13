@@ -60,9 +60,9 @@ from linkoauth.oid_extensions import OAuthRequest
 from linkoauth.oid_extensions import UIRequest
 from linkoauth.openidconsumer import ax_attributes, attributes
 from linkoauth.openidconsumer import OpenIDResponder
-from linkoauth.base import get_oauth_config, OAuthKeysException
+from linkoauth.base import get_oauth_config
 from linkoauth.protocap import ProtocolCapturingBase, OAuth2Requestor
-from linkoauth.errors import BackendError, OptionError
+from linkoauth.errors import BackendError, OptionError, OAuthKeysException
 
 GOOGLE_OAUTH = 'https://www.google.com/accounts/OAuthGetAccessToken'
 
