@@ -76,7 +76,8 @@ def render(template_name, extra_vars=None, cache_key=None,
 
         return literal(template.render_unicode(**globs))
 
-    return _cached_template(template_name, render_template, cache_key=cache_key,
+    return _cached_template(template_name, render_template,
+                            cache_key=cache_key,
                             cache_type=cache_type, cache_expire=cache_expire)
 
 
@@ -119,6 +120,7 @@ def _cached_template(template_name, render_func, ns_options=(),
 
 ## {{{ http://code.activestate.com/recipes/52281/ (r1) PSF License
 
+
 class StrippingParser(sgmllib.SGMLParser):
 
     # These are the HTML tags that we will leave intact
@@ -149,7 +151,8 @@ class StrippingParser(sgmllib.SGMLParser):
         if tag in self.valid_tags:
             self.result = self.result + '<' + tag
             for k, v in attrs:
-                if string.lower(k[0:2]) != 'on' and string.lower(v[0:10]) != 'javascript':
+                if (string.lower(k[0:2]) != 'on' and
+                    string.lower(v[0:10]) != 'javascript'):
                     self.result = '%s %s="%s"' % (self.result, k, v)
             endTag = '</%s>' % tag
             self.endTagList.insert(0, endTag)
@@ -165,6 +168,7 @@ class StrippingParser(sgmllib.SGMLParser):
         """ Append missing closing tags """
         for j in range(len(self.endTagList)):
                 self.result = self.result + self.endTagList[j]
+
 
 def safeHTML(s):
     """ Strip illegal HTML tags from string s """

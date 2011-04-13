@@ -37,38 +37,43 @@ from twitter.api import Twitter, TwitterHTTPError
 domain = 'twitter.com'
 log = logging.getLogger(domain)
 
+# example record for twiter_to_poco:
+
+"""
+{'id': 33934767,
+ 'verified': False,
+ 'profile_sidebar_fill_color': 'e0ff92',
+ 'profile_text_color': '000000',
+ 'followers_count': 47,
+ 'profile_sidebar_border_color': '87bc44',
+ 'location': '',
+ 'profile_background_color': '9ae4e8',
+ 'utc_offset': None,
+ 'statuses_count': 36,
+ 'description': '',
+ 'friends_count': 58,
+ 'profile_link_color': '0000ff',
+ 'profile_image_url':
+    'http://a3.twimg.com/profile_images/763050003/me_normal.png',
+ 'notifications': False,
+ 'geo_enabled': False,
+ 'profile_background_image_url':
+    'http://s.twimg.com/a/1276197224/images/themes/theme1/bg.png',
+ 'screen_name': 'mixedpuppy',
+ 'lang': 'en',
+ 'profile_background_tile': False,
+ 'favourites_count': 0,
+ 'name': 'Shane Caraveo',
+ 'url': 'http://mixedpuppy.wordpress.com',
+ 'created_at': 'Tue Apr 21 15:21:25 +0000 2009',
+ 'contributors_enabled': False,
+ 'time_zone': None,
+ 'protected': False,
+ 'following': False}
+"""
+
 
 def twitter_to_poco(user):
-    # example record
-    #{'id': 33934767,
-    # 'verified': False,
-    # 'profile_sidebar_fill_color': 'e0ff92',
-    # 'profile_text_color': '000000',
-    # 'followers_count': 47,
-    # 'profile_sidebar_border_color': '87bc44',
-    # 'location': '',
-    # 'profile_background_color': '9ae4e8',
-    # 'utc_offset': None,
-    # 'statuses_count': 36,
-    # 'description': '',
-    # 'friends_count': 58,
-    # 'profile_link_color': '0000ff',
-    # 'profile_image_url': 'http://a3.twimg.com/profile_images/763050003/me_normal.png',
-    # 'notifications': False,
-    # 'geo_enabled': False,
-    # 'profile_background_image_url': 'http://s.twimg.com/a/1276197224/images/themes/theme1/bg.png',
-    # 'screen_name': 'mixedpuppy',
-    # 'lang': 'en',
-    # 'profile_background_tile': False,
-    # 'favourites_count': 0,
-    # 'name': 'Shane Caraveo',
-    # 'url': 'http://mixedpuppy.wordpress.com',
-    # 'created_at': 'Tue Apr 21 15:21:25 +0000 2009',
-    # 'contributors_enabled': False,
-    # 'time_zone': None,
-    # 'protected': False,
-    # 'following': False}
-
     poco = {
         'displayName': user.get('name', user.get('screen_name')),
     }
@@ -86,6 +91,7 @@ def twitter_to_poco(user):
     poco['accounts'] = [account]
 
     return poco
+
 
 class TwitterResponder(OAuth1):
     """Handle Twitter OAuth login/authentication"""
@@ -116,8 +122,8 @@ class TwitterResponder(OAuth1):
         profile['accounts'] = [account]
 
         result_data = {'profile': profile,
-                       'oauth_token': access_token['oauth_token'],
-                       'oauth_token_secret': access_token['oauth_token_secret']}
+                      'oauth_token': access_token['oauth_token'],
+                      'oauth_token_secret': access_token['oauth_token_secret']}
         result, error = TwitterRequester(
               oauth_token=access_token['oauth_token'],
               oauth_token_secret=access_token['oauth_token_secret']).profile()
@@ -127,11 +133,15 @@ class TwitterResponder(OAuth1):
 
 
 class TwitterRequester(object):
-    def __init__(self, account=None, oauth_token=None, oauth_token_secret=None):
+    def __init__(self, account=None, oauth_token=None,
+                 oauth_token_secret=None):
         self.account = account
         self.domain = domain
-        self.oauth_token = account and account.get('oauth_token') or oauth_token
-        self.oauth_token_secret = account and account.get('oauth_token_secret') or oauth_token_secret
+        self.oauth_token = (account and account.get('oauth_token') or
+                            oauth_token)
+        self.oauth_token_secret = (account and
+                                   account.get('oauth_token_secret') or
+                                   oauth_token_secret)
         if not self.oauth_token or not self.oauth_token_secret:
             raise OAuthKeysException()
 
@@ -170,7 +180,8 @@ class TwitterRequester(object):
                 # sometimes the error does not contain a json object, let's
                 # try to see what it is
                 msg = error_response
-                log.error("twitter returned non-json in an error response: %s", msg)
+                log.error("twitter returned non-json in an error "
+                          "response: %s", msg)
             else:
                 if 'error' in details:
                     msg = details['error']
@@ -200,7 +211,8 @@ class TwitterRequester(object):
 
             direct = options.get('to', None)
             if direct:
-                result = self.api().direct_messages.new(text=message, user=direct)
+                result = self.api().direct_messages.new(text=message,
+                        user=direct)
             else:
                 result = self.api().statuses.update(status=message)
             result[domain] = result['id']
