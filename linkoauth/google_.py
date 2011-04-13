@@ -134,7 +134,6 @@ class GoogleResponder(OpenIDResponder):
     def get_name(cls):
         return cls.domain
 
-
     def _lookup_identifier(self, identifier):
         """Return the Google OpenID directed endpoint"""
         if identifier:
@@ -260,10 +259,12 @@ class SMTP(smtplib.SMTP):
             raise smtplib.SMTPResponseException(code, resp)
         return code, resp
 
+
 # A "protocol capturing" SMTP class - should move into its own module
 # once we get support for other SMTP servers...
 class SMTPRequestorImpl(SMTP, ProtocolCapturingBase):
     pc_protocol = "smtp"
+
     def __init__(self, host, port):
         self._record = []
         self.pc_host = host
@@ -284,7 +285,8 @@ class SMTPRequestorImpl(SMTP, ProtocolCapturingBase):
         except Exception, exc:
             try:
                 module = getattr(exc, '__module__', None)
-                erepr = {'module': module, 'name': exc.__class__.__name__, 'args': exc.args}
+                erepr = {'module': module, 'name': exc.__class__.__name__,
+                         'args': exc.args}
                 self._record.append("E " + json.dumps(erepr))
             except Exception:
                 log.exception("failed to serialize an SMTP exception")
@@ -458,7 +460,8 @@ class GoogleRequester(object):
                 except smtplib.SMTPResponseException, exc:
                     server.save_capture("smtp response exception")
                     error = {"provider": self.host,
-                             "message": "%s: %s" % (exc.smtp_code, exc.smtp_error),
+                             "message": "%s: %s" % (exc.smtp_code,
+                                                    exc.smtp_error),
                              "status": exc.smtp_code}
                 except smtplib.SMTPException, exc:
                     server.save_capture("smtp exception")

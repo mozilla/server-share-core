@@ -64,6 +64,7 @@ Responder.register(google_.GoogleResponder)
 Responder.register(yahoo_.YahooResponder)
 Responder.register(linkedin_.responder)
 
+
 def get_responder(domain, **kw):
     try:
         return Responder.get(domain, **kw)
@@ -143,8 +144,10 @@ class Services(ServicesStatus):
 
     @_updated
     def getcontacts(self, domain, account, start=0, page=25, group=None, **kw):
-        return get_requester(domain, account, **kw).getcontacts(start, page, group)
+        return get_requester(domain, account, **kw).getcontacts(start, page,
+                                                                group)
 
     @_updated
     def request_access(self, domain, request, url, session, **kw):
-        return get_responder(domain, **kw).request_access(request, url, session)
+        return get_responder(domain, **kw).request_access(request, url,
+                                                          session)

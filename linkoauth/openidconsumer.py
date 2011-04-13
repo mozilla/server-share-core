@@ -259,8 +259,6 @@ class OpenIDResponder(object):
         return None
 
     def request_access(self, request, url, session):
-        post = request.POST
-
         log_debug = self.log_debug
         if log_debug:
             log.debug('Handling OpenID login')

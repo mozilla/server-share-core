@@ -82,7 +82,7 @@ def twitter_to_poco(user):
 
     account = {'domain': 'twitter.com',
                'userid': user['id'],
-               'username': user['screen_name'] }
+               'username': user['screen_name']}
     poco['accounts'] = [account]
 
     return poco
@@ -112,14 +112,15 @@ class TwitterResponder(OAuth1):
 
         account = {'domain': 'twitter.com',
                    'userid': userid,
-                   'username': username }
+                   'username': username}
         profile['accounts'] = [account]
 
         result_data = {'profile': profile,
                        'oauth_token': access_token['oauth_token'],
                        'oauth_token_secret': access_token['oauth_token_secret']}
-        result, error = api(oauth_token=access_token['oauth_token'],
-                   oauth_token_secret=access_token['oauth_token_secret']).profile()
+        result, error = TwitterRequester(
+              oauth_token=access_token['oauth_token'],
+              oauth_token_secret=access_token['oauth_token_secret']).profile()
         if result:
             profile.update(twitter_to_poco(result))
         return result_data
@@ -177,8 +178,7 @@ class TwitterRequester(object):
                     msg = str(details)
         return {'provider': domain,
                 'message': msg,
-                'status': exc.e.code
-        }
+                'status': exc.e.code}
 
     def sendmessage(self, message, options={}):
         result = error = None
@@ -210,8 +210,7 @@ class TwitterRequester(object):
             # connection timeouts when twitter is unavailable?
             error = {
                 'provider': domain,
-                'message': e.args[0]
-            }
+                'message': e.args[0]}
         return result, error
 
     def profile(self):
@@ -224,8 +223,8 @@ class TwitterRequester(object):
         except URLError, e:
             error = {
                 'provider': domain,
-                'message': e.args[0]
-            }
+                'message': e.args[0]}
+
         return result, error
 
     def getcontacts(self, start=0, page=25, group=None):
@@ -242,8 +241,7 @@ class TwitterRequester(object):
                 'entry': contacts,
                 'itemsPerPage': len(contacts),
                 'startIndex':   0,
-                'totalResults': len(contacts),
-            }
+                'totalResults': len(contacts)}
 
             return connectedto, None
         except TwitterHTTPError, exc:
@@ -251,6 +249,5 @@ class TwitterRequester(object):
         except URLError, e:
             error = {
                 'provider': domain,
-                'message': e.args[0]
-            }
+                'message': e.args[0]}
         return result, error
