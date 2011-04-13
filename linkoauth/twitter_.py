@@ -26,11 +26,13 @@
 import json
 import logging
 from urllib2 import URLError
+from urllib import urlencode
 
 import oauth2 as oauth
 
 from linkoauth.util import asbool
 from linkoauth.base import OAuth1, get_oauth_config, OAuthKeysException
+from linkoauth.protocap import OAuth2Requestor
 
 domain = 'twitter.com'
 log = logging.getLogger(domain)
@@ -160,22 +162,13 @@ class api():
         return error
 
     def rawcall(self, url, params=None, method="GET"):
-        client = oauth.Client(self.consumer, self.oauth_token)
-
-        oauth_request = oauth.Request.from_consumer_and_token(self.consumer,
-                                                              token=self.oauth_token,
-                                                              http_url=url,
-                                                              http_method=method,
-                                                              parameters=params)
-        oauth_request.sign_request(self.sigmethod, self.consumer, self.oauth_token)
-
-        if method == "POST":
-            encoded_post_data = oauth_request.to_postdata()
+        client = OAuth2Requestor(self.consumer, self.oauth_token)
+        if method=="POST":
+            body = urlencode(params)
         else:
-            encoded_post_data = ''
-            url = oauth_request.to_url()
-
-        resp, content = client.request(url, method, body=encoded_post_data)
+            assert params is None
+            body = ''
+        resp, content = client.request(url, method, body=body)
 
         data = content and json.loads(content) or resp
 
