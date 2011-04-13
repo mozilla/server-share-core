@@ -36,3 +36,14 @@ class DomainNotRegisteredError(Exception):
 
 class OptionError(Exception):
     pass
+
+
+class StatusReadError(Exception):
+    pass
+
+
+class StatusWriteError(Exception):
+    pass
+
+
+

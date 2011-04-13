@@ -47,16 +47,7 @@ using the peer-to-peer replication feature.
 """
 from pylibmc import Client, SomeErrors, WriteError
 from _pylibmc import NotFound
-from linkoauth.errors import BackendError
-
-
-class StatusReadError(Exception):
-    pass
-
-
-class StatusWriteError(Exception):
-    pass
-
+from linkoauth.errors import BackendError, StatusReadError, StatusWriteError
 
 
 def _key(*args):
