@@ -32,17 +32,8 @@ from linkoauth.errors import BackendError
 #from linkoauth.live_ import LiveResponder
 #from linkoauth.openidconsumer import OpenIDResponder
 
-__all__ = ['get_provider']
-
-# XXX need a better way to do this
-_providers = {
-    twitter_.domain:  twitter_,
-    facebook_.domain: facebook_,
-    google_.domain: google_,
-    "googleapps.com": google_,
-    yahoo_.domain: yahoo_,
-    linkedin_.domain: linkedin_
-}
+__all__ = ['Responder', 'get_responder', 'Requester', 'get_requester',
+           'Services']
 
 
 class Responder(PluginRegistry):
@@ -114,6 +105,7 @@ class Services(ServicesStatus):
 
     def _updated(func):
         def __updated(self, domain, *args, **kw):
+            domain = str(domain)
             try:
                 res = func(self, domain, *args, **kw)
             except BackendError, e:
@@ -140,14 +132,3 @@ class Services(ServicesStatus):
     @_updated
     def request_access(self, domain, request, url, session, **kw):
         return get_responder(domain, **kw).request_access(request, url, session)
-
-
-#
-# XXX to be removed
-#
-def get_providers():
-    """Returns provider names"""
-    return _providers.keys()
-
-def get_provider(provider):
-    return _providers.get(provider)
