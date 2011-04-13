@@ -31,3 +31,6 @@ class BackendError(Exception):
     third-party service failed
     """
 
+class DomainNotRegisteredError(Exception):
+    pass
+

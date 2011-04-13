@@ -4,9 +4,11 @@ import json
 import urllib2
 
 from linkoauth.util import setup_config
-from linkoauth import get_providers, get_provider, get_requester
+from linkoauth import get_requester
 from linkoauth import google_
 from linkoauth import Services
+from linkoauth.errors import DomainNotRegisteredError
+
 
 
 _ACCOUNT = {'oauth_token': 'xxx',
@@ -78,27 +80,6 @@ class TestBasics(unittest.TestCase):
         google_.SMTPRequestor = self.old_smtp
         urllib2.urlopen = self.old_urlopen
 
-    def _test_registery(self):
-        message = ''
-        args = {'to': 'tarek@ziade.org',
-                'subject': 'xxx',
-                'title': 'the title',
-                'description': 'some description',
-                'link': 'http://example.com',
-                'shorturl': 'http://example.com'}
-
-        # just a sanity check to see if every oauth backend
-        # can be instanciated and send messages
-        #
-        for provider in get_providers():
-            provider = get_provider(provider)
-            api = provider.api(_ACCOUNT)
-            res, error = api.sendmessage(message, args)
-            if res is None:
-                api.sendmessage(message, args)
-
-            self.assertTrue(res['status'] in (200, 'message sent'))
-
     def test_callbacks(self):
         message = ''
         args = {'to': 'tarek@ziade.org',
@@ -116,3 +97,15 @@ class TestBasics(unittest.TestCase):
 
         status = services.get_status('google.com')
         self.assertEquals(status, (True, 1, 0))
+
+    def test_service_unknown(self):
+
+        # this should fail, as 'a' is not registered
+        self.assertRaises(DomainNotRegisteredError,
+                          Services, ['google.com', 'a'])
+
+        # this should fail too
+        services = Services(['google.com'])
+        self.assertRaises(DomainNotRegisteredError, services.sendmessage, 'a',
+                          object(), '', '')
+

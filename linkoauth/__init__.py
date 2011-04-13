@@ -27,7 +27,7 @@ from services.pluginreg import PluginRegistry
 
 from linkoauth import facebook_, google_, twitter_, yahoo_, linkedin_
 from linkoauth.sstatus import ServicesStatus
-from linkoauth.errors import BackendError
+from linkoauth.errors import BackendError, DomainNotRegisteredError
 
 #from linkoauth.live_ import LiveResponder
 #from linkoauth.openidconsumer import OpenIDResponder
@@ -65,7 +65,10 @@ Responder.register(yahoo_.YahooResponder)
 Responder.register(linkedin_.responder)
 
 def get_responder(domain, **kw):
-    return Responder.get(domain, **kw)
+    try:
+        return Responder.get(domain, **kw)
+    except KeyError:
+        raise DomainNotRegisteredError(domain)
 
 
 class Requester(PluginRegistry):
@@ -94,13 +97,26 @@ Requester.register(linkedin_.api)
 
 
 def get_requester(domain, account, **kw):
-    return Requester.get(domain, account=account, **kw)
+    try:
+        return Requester.get(domain, account=account, **kw)
+    except KeyError:
+        raise DomainNotRegisteredError(domain)
 
 
 # high-level
 class Services(ServicesStatus):
 
     def __init__(self, services, servers=None, ttl=600):
+        requesters = [req.get_name() for req in Requester._abc_registry]
+        responders = [res.get_name() for res in Responder._abc_registry]
+
+        for service in services:
+            if service not in requesters:
+                raise DomainNotRegisteredError(service)
+
+            if service not in responders:
+                raise DomainNotRegisteredError(service)
+
         ServicesStatus.__init__(self, services, servers, ttl)
 
     def _updated(func):
