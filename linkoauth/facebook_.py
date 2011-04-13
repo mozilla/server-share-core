@@ -49,15 +49,16 @@ def encode_multipart_formdata(body):
     CRLF = '\r\n'
     L = []
     for key in body:
-       L.append('--' + BOUNDARY)
-       L.append('Content-Disposition: form-data; name="%s"' % key)
-       L.append('')
-       L.append(body[key])
+        L.append('--' + BOUNDARY)
+        L.append('Content-Disposition: form-data; name="%s"' % key)
+        L.append('')
+        L.append(body[key])
     L.append('--' + BOUNDARY + '--')
     L.append('')
     body = CRLF.join(L)
     content_type = 'multipart/form-data; boundary=%s' % BOUNDARY
     return content_type, body.encode('utf-8')
+
 
 # borrowed from velruse
 def extract_fb_data(data):
@@ -74,7 +75,8 @@ def extract_fb_data(data):
     if link:
         link = urlparse.urlparse(link)
         path = link.path[1:].split('/')[0]
-        if not link.query and path is not 'profile.php' and path is not data['id']:
+        if (not link.query and path is not 'profile.php' and
+            path is not data['id']):
             nick = path
 
     profile = {
@@ -88,8 +90,8 @@ def extract_fb_data(data):
     }
 
     account = {'domain': 'facebook.com',
-             'userid': data['id'],
-             'username': nick or data['name'] }
+               'userid': data['id'],
+               'username': nick or data['name']}
     profile['accounts'] = [account]
 
     tz = data.get('timezone')
@@ -117,10 +119,12 @@ def extract_fb_data(data):
     profile['name'] = name
 
     # facebook gives us an absolute url, these work and redirect to their CDN
-    profile['photos'] = [
-          {'type':"thumbnail", 'value':"https://graph.facebook.com/" + data['id'] + "/picture?type=square"},
-          {'type':"profile",   'value':"https://graph.facebook.com/" + data['id'] + "/picture?type=large"}
-        ]
+    profile['photos'] = [{'type': "thumbnail",
+                          'value': "https://graph.facebook.com/" +
+                                   data['id'] + "/picture?type=square"},
+                          {'type': "profile",
+                           'value': "https://graph.facebook.com/" +
+                                    data['id'] + "/picture?type=large"}]
 
     # Now strip out empty values
     for k, v in profile.items():
@@ -144,8 +148,10 @@ class FacebookResponder(OAuth2):
         return cls.domain
 
     def _get_credentials(self, access_token):
-        profile_url = config.get("oauth.facebook.com.profile", self.profile_url)
-        fields = 'id,first_name,last_name,name,link,birthday,email,website,verified,picture,gender,timezone'
+        profile_url = config.get("oauth.facebook.com.profile",
+                                 self.profile_url)
+        fields = ('id,first_name,last_name,name,link,birthday,email,'
+                  'website,verified,picture,gender,timezone')
         client = HttpRequestor()
         url = build_url(profile_url, access_token=access_token, fields=fields)
         resp, content = client.request(url)
@@ -192,7 +198,7 @@ class FacebookRequester(object):
         # at getting the format of the value for www-authenticate correct
         # so we wont even bother with it, but the real error_code is
         # hidden within.
-        if 'invalid_token' in resp.get('www-authenticate',''):
+        if 'invalid_token' in resp.get('www-authenticate', ''):
             status = 401
         else:
             status = int(resp['status'])
@@ -221,27 +227,27 @@ class FacebookRequester(object):
         # who knows, some other abberation
         else:
             client.save_capture('nonsensical response')
-            error = {
-                 'message': "expectedly, an unexpected facebook error: %r"% (data,),
-            }
+            error = {'message':
+                    "expectedly, an unexpected facebook error: %r" % (data,)}
             log.error(error['message'])
 
         error.update({'code': code,
-                     'provider': domain,
-                     'status': status})
+                      'provider': domain,
+                      'status': status})
         return error
 
     def rawcall(self, url, body=None, method="GET"):
-        url = url +"?"+urllib.urlencode(dict(access_token=self.access_token))
+        url = "%s?%s" % (url,
+                       urllib.urlencode(dict(access_token=self.access_token)))
         headers = None
         if body:
             content_type, body = encode_multipart_formdata(body)
-            headers = {
-                 'Content-type': content_type,
-                 'Content-Length': str(len(body))
-            }
+            headers = {'Content-type': content_type,
+                       'Content-Length': str(len(body))}
+
         client = HttpRequestor()
-        resp, content = client.request(url, method=method, headers=headers, body=body)
+        resp, content = client.request(url, method=method, headers=headers,
+                                       body=body)
 
         try:
             data = json.loads(content)
@@ -271,20 +277,20 @@ class FacebookRequester(object):
         'description': 'description',
         'picture': 'picture',
         'caption': 'caption',
-        'source': 'source'
-    }
+        'source': 'source'}
+
     def sendmessage(self, message, options={}):
         direct = options.get('to', None)
         if direct:
             url = "https://graph.facebook.com/%s/feed" % (direct,)
         else:
-            url = config.get("oauth.facebook.com.feed", "https://graph.facebook.com/me/feed")
-        body = {
-            "message": message
-        }
+            url = config.get("oauth.facebook.com.feed",
+                             "https://graph.facebook.com/me/feed")
+        body = {"message": message}
+
         for ours, yours in self.post_map.items():
             if ours in options:
-                 body[yours] = options[ours]
+                body[yours] = options[ours]
 
         return self.rawcall(url, body, "POST")
 
@@ -300,14 +306,13 @@ class FacebookRequester(object):
         for group in result['data']:
             groups.append({
                  'displayName': group.get('name'),
-                 'accounts': [{'userid': group.get('id'), 'username': None, 'domain': domain}]
-            })
+                 'accounts': [{'userid': group.get('id'),
+                               'username': None, 'domain': domain}]})
 
         connectedto = {
             'entry': groups,
             'itemsPerPage': len(groups),
             'startIndex':   0,
-            'totalResults': len(groups),
-        }
+            'totalResults': len(groups)}
 
         return connectedto, None

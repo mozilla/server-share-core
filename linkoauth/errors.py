@@ -21,6 +21,7 @@
 # Contributor(s): Tarek Ziade <tarek@mozilla.com>
 #
 
+
 class BadVersionError(Exception):
     pass
 
@@ -29,6 +30,7 @@ class BackendError(Exception):
     """Happens when there was a problem with the
     third-party service failed
     """
+
 
 class DomainNotRegisteredError(Exception):
     pass
