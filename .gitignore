@@ -1,5 +1,15 @@
 *.pyc
+*.egg-info
+*~
+*.spec
+.coverage
+/lib
+/lib64
+coverage.xml
+nosetests.xml
 bin
+build
+deps
+dist
+htmlcov
 include
-lib
-linkoauth.egg-info
