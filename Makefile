@@ -54,6 +54,7 @@ test:
 	$(NOSE) $(NOSETESTS_ARGS) $(TESTS)
 
 coverage:
+	$(EZ) coverage
 	$(NOSE) $(NOSETESTS_ARGS_C) $(TESTS)
 	$(COVERAGE) xml
 
