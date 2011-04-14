@@ -151,7 +151,7 @@ class ServicesStatusMiddleware(object):
         return ['The service is unavailable']
 
     def __call__(self, environ, start_response):
-        target_service = environ.get('HTTP_X_TARGET_SERVICE')
+        target_service = environ.get('HTTP_X_TARGET_DOMAIN')
         try:
             index = self.services.index(target_service)
         except ValueError:

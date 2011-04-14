@@ -80,7 +80,7 @@ class TestServiceStatus(unittest.TestCase):
         self.assertEqual(res[0], 'Hello World')
 
         # adding X-Target-Service
-        request['HTTP_X_TARGET_SERVICE'] = 'a'
+        request['HTTP_X_TARGET_DOMAIN'] = 'a'
         res = app(request, start_response)
         # still under ratio
         self.assertEqual(res[0], 'Hello World')
