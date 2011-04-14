@@ -107,3 +107,20 @@ class TestBasics(unittest.TestCase):
         services = Services(['google.com'])
         self.assertRaises(DomainNotRegisteredError, services.sendmessage, 'a',
                           object(), '', '')
+
+    def test_disabled(self):
+        message = ''
+        args = {'to': 'tarek@ziade.org',
+                'subject': 'xxx',
+                'title': 'the title',
+                'description': 'some description',
+                'link': 'http://example.com',
+                'shorturl': 'http://example.com'}
+
+        services = Services(['google.com'], feedback_enabled=False)
+        services.initialize('google.com')
+        res, error = services.sendmessage('google.com', _ACCOUNT,
+                                          message, args)
+
+        status = services.get_status('google.com')
+        self.assertEquals(status, (True, 0, 0))

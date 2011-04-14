@@ -107,7 +107,8 @@ def get_requester(domain, account, **kw):
 # high-level
 class Services(ServicesStatus):
 
-    def __init__(self, services, servers=None, ttl=600):
+    def __init__(self, services, servers=None, ttl=600,
+                 feedback_enabled=True):
         requesters = [req.get_name() for req in Requester._abc_registry]
         responders = [res.get_name() for res in Responder._abc_registry]
 
@@ -118,6 +119,7 @@ class Services(ServicesStatus):
             if service not in responders:
                 raise DomainNotRegisteredError(service)
 
+        self.feedback_enabled = feedback_enabled
         ServicesStatus.__init__(self, services, servers, ttl)
 
     def _updated(func):
@@ -126,13 +128,16 @@ class Services(ServicesStatus):
             try:
                 res = func(self, domain, *args, **kw)
             except BackendError, e:
-                self.update_status(domain, False)
+                if self.feedback_enabled:
+                    self.update_status(domain, False)
                 return None, e.args[0]
             except HTTPRedirection:
-                self.update_status(domain, True)
+                if self.feedback_enabled:
+                    self.update_status(domain, True)
                 raise
             else:
-                if len(res) == 2 and res[0] is not None:
+                if (len(res) == 2 and res[0] is not None  and
+                    self.feedback_enabled):
                     self.update_status(domain, True)
             return res
         return __updated
