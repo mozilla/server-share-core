@@ -56,6 +56,6 @@ test:
 coverage:
 	$(EZ) coverage
 	$(NOSE) $(NOSETESTS_ARGS_C) $(TESTS)
-	$(COVERAGE) xml
+	$(COVERAGE) xml -i
 
 .PHONY: clean dist rpm build test coverage
