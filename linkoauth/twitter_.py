@@ -213,7 +213,7 @@ class api():
         else:
             return None, {'code': 400,
                           'provider': domain,
-                          'message': 'Share type is missing'}            
+                          'message': 'Share type is missing'}
         return self.rawcall(url, params=body, method="POST")
 
     def profile(self):

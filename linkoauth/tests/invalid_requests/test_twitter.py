@@ -8,7 +8,7 @@ from linkoauth.tests.test_base import _ACCOUNT, _CONFIG
 class TestBasics(unittest.TestCase):
     def setUp(self):
         setup_config(_CONFIG)
-    
+
     def get_args(self, **kw):
         args = {'subject': 'xxx',
                 'title': 'the title',
