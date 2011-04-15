@@ -42,7 +42,7 @@ my %excluded = (
 
 foreach my $req (sort keys %requires) {
   next if exists $excluded{$req};
-  print STDERR "Inclindng $req\n";
+  print STDERR "Including $req\n";
   my $reqs;
 
   if (exists $included{$req}) {
