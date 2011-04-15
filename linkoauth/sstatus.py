@@ -45,6 +45,8 @@ This module provides:
 The statuses are saved in a membase backend that can be replicated around
 using the peer-to-peer replication feature.
 """
+import sys
+
 from pylibmc import Client, SomeErrors, WriteError
 from _pylibmc import NotFound
 
@@ -174,3 +176,89 @@ class ServicesStatusMiddleware(object):
                     return self._503(start_response)
 
         return self.app(environ, start_response)
+
+
+_USAGE = """\
+Usage : sstatus server domain action [options]
+
+Available actions:
+    - status: returns a status for the domain
+    - enable: enable the domain
+    - disable: disable the domain
+    - reset: reset the domain by setting the counters to 0 and enabling it
+
+Example:
+
+    $ sstatus 127.0.0.1:11211 google.com status
+    This service is enabled.
+    12653 successes, 3 failures.
+
+"""
+
+def _ask(question):
+    answer = raw_input(question + ' ')
+    answer = answer.lower().strip()
+    return answer in ('y', 'yes')
+
+
+if __name__ == '__main__':
+    if len(sys.argv) < 4:
+        print(_USAGE)
+        sys.exit(1)
+
+    server = sys.argv[1]
+    domain = sys.argv[2]
+    action = sys.argv[3]
+    options = sys.argv[4:]
+
+    server = ServicesStatus([domain], [server])
+    if action == 'status':
+        try:
+            enabled, success, fail = server.get_status(domain)
+        except StatusReadError:
+            print('Ooops, could not read the status.')
+            sys.exit(1)
+
+        if not enabled:
+            print('This service has been disabled')
+        else:
+            print('This service is enabled.')
+            print('%d successes, %d failures.' % (success, fail))
+        sys.exit(0)
+    elif action == 'enable':
+        try:
+            server.enable(domain)
+        except StatusWriteError:
+            print('Ooops, could not enable the service.')
+            sys.exit(1)
+
+        print('Service enabled.')
+        sys.exit(0)
+    elif action == 'disable':
+        if _ask('Are you sure you want to disable "%s" ?' % domain):
+            try:
+                server.disable(domain)
+            except StatusWriteError:
+                print('Ooops, could not disable the service.')
+                sys.exit(1)
+
+            print('Service disabled.')
+        else:
+            print('Aborted.')
+        sys.exit(0)
+    elif action == 'reset':
+        if _ask('Are you sure you want to reset "%s" ?' % domain):
+            try:
+                server.initialize(domain)
+            except StatusWriteError:
+                print('Ooops, could not disable the service.')
+                sys.exit(1)
+
+            print('Service reseted.')
+        else:
+            print('Aborted.')
+        sys.exit(0)
+    else:
+        print('Unknown action.')
+        print(usage)
+        sys.exit(1)
