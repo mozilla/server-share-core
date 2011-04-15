@@ -185,6 +185,7 @@ class api():
         # insert the url if it is not already in the message
         longurl = options.get('link')
         shorturl = options.get('shorturl')
+        share_type = options.get('shareType', None)
         if shorturl:
             # if the long url is in the message body, replace it with
             # the short url, otherwise just make sure shorturl is in
@@ -197,13 +198,22 @@ class api():
             # some reason we dont have a short url, add the long url
             message += " %s" % longurl
 
-        direct = options.get('to', None)
-        if direct:
+        if share_type == 'direct':
+            direct = options.get('to', None)
+            if not direct:
+                return None, \
+                        {'code': 400,
+                         'provider': domain,
+                         'message': 'Missing addressee for direct message'}
             url = 'https://api.twitter.com/1/direct_messages/new.json'
             body = { 'user': direct, 'text': message }
-        else:
+        elif share_type == 'public':
             url = 'https://api.twitter.com/1/statuses/update.json'
             body = { 'status': message }
+        else:
+            return None, {'code': 400,
+                          'provider': domain,
+                          'message': 'Share type is missing'}
         return self.rawcall(url, params=body, method="POST")
 
     def profile(self):
