@@ -134,6 +134,7 @@ class TwitterResponder(OAuth1):
 class TwitterRequester(object):
     def __init__(self, account=None, oauth_token=None,
                  oauth_token_secret=None):
+        self.domain = domain
         self.config = get_oauth_config(domain)
         oauth_token = account and account.get('oauth_token') or oauth_token
         oauth_token_secret = (account and account.get('oauth_token_secret')
@@ -151,6 +152,10 @@ class TwitterRequester(object):
         self.consumer = oauth.Consumer(key=self.consumer_key,
                                        secret=self.consumer_secret)
         self.sigmethod = oauth.SignatureMethod_HMAC_SHA1()
+
+    @classmethod
+    def get_name(cls):
+        return domain
 
     def _make_error(self, data, resp):
         status = int(resp['status'])
