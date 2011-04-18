@@ -29,7 +29,8 @@ from urllib import urlencode
 
 import oauth2 as oauth
 
-from linkoauth.oauth import OAuth1, get_oauth_config, OAuthKeysException
+from linkoauth.oauth import OAuth1, get_oauth_config
+from linkoauth.errors import OAuthKeysException
 from linkoauth.protocap import OAuth2Requestor
 
 domain = 'twitter.com'
