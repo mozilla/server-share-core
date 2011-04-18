@@ -149,8 +149,21 @@ class api(object):
         return result, error
 
     def sendmessage(self, message, options={}):
-        direct = options.get('to', 'anyone')
-        if direct in ('anyone', 'connections-only'):
+        share_type = str(options.get('shareType', ''))
+        if not share_type or share_type not in \
+            ('public', 'myConnections', 'contact'):
+            return None, {'code': 400,
+                          'provider': 'linkedin',
+                          'message': 'Invalid share type'}
+
+        # TODO: this needs a bit work, it is not really "direct".
+        if share_type in ('public', 'myConnections'):
+            direct = options.get('to', 'anyone')
+            if (share_type == 'public' and direct != 'anyone') or \
+               (share_type == 'myConnections' and direct != 'connections-only'):
+                return None, {'code': 400,
+                              'provider': 'linkedin',
+                              'message': 'Incorrect addressing for post'}
             url = "http://api.linkedin.com/v1/people/~/shares"
             body = {
                 "comment": message,
@@ -181,8 +194,12 @@ class api(object):
             description = options.get('description', '')[:280]
 
             to_ = []
-            for a in to_addrs.addresslist:
-                to_.append({'person': {'_path': '/people/' + a[1]}})
+            ids = [a[1] for a in to_addrs.addresslist]
+            if not ids:
+                return None, {'code': 400,
+                              'message': 'Missing contacts for direct messaging.'}
+            for id in ids:
+                to_.append({'person': {'_path': '/people/' + id}})
 
             extra_vars = {'safeHTML': safeHTML}
             extra_vars['options'] = options

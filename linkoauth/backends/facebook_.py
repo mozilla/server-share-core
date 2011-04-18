@@ -280,14 +280,18 @@ class FacebookRequester(object):
         'source': 'source'}
 
     def sendmessage(self, message, options={}):
-        direct = options.get('to', None)
-        if direct:
+        share_type = options.get('shareType', None)
+        if share_type == 'groupWall':
+            direct = options.get('to', None)
+            if not direct:
+                return None, {'code': 400, 'message': 'Wall name is missing'}
             url = "https://graph.facebook.com/%s/feed" % (direct,)
-        else:
+        elif share_type == 'wall':
             url = config.get("oauth.facebook.com.feed",
                              "https://graph.facebook.com/me/feed")
+        else:
+            return None, {'code': 400, 'message': 'Share type is missing'}
         body = {"message": message}
-
         for ours, yours in self.post_map.items():
             if ours in options:
                 body[yours] = options[ours]
