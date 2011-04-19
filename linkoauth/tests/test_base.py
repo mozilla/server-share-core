@@ -1,11 +1,14 @@
 import unittest
 import httplib2
 import json
+import mock
+import time
 import urllib2
 
 from linkoauth.util import setup_config
 from linkoauth.backends import google_
 from linkoauth import Services
+from linkoauth import sstatus
 from linkoauth.errors import DomainNotRegisteredError
 
 
@@ -51,7 +54,6 @@ class _SMTP(object):
 
 
 class _FakeResult(object):
-
     headers = {}
 
     def read(self):
@@ -61,6 +63,32 @@ class _FakeResult(object):
 
 def _urlopen(*args):
     return _FakeResult()
+
+
+class MockCache(object):
+    def __init__(self):
+        self._cache = dict()
+        self._cache_ttl = dict()
+
+    def get(self, key):
+        if key in self._cache_ttl:
+            now = time.time()
+            ttl, last_time = self._cache_ttl[key]
+            if now - last_time > ttl:
+                del self._cache_ttl[key]
+                del self._cache[key]
+            else:
+                self._cache_ttl[key] = (ttl, now)
+        return self._cache.get(key)
+
+    def set(self, key, value, **kwargs):
+        self._cache[key] = value
+        ttl = kwargs.get('time')
+        if ttl is not None:
+            self._cache_ttl[key] = (ttl, time.time())
+
+    def incr(self, key):
+        self._cache[key] = self._cache[key] + 1
 
 
 class TestBasics(unittest.TestCase):
@@ -73,11 +101,16 @@ class TestBasics(unittest.TestCase):
         google_.SMTPRequestor = _SMTP
         self.old_urlopen = urllib2.urlopen
         urllib2.urlopen = _urlopen
+        self.mcclient_patcher = mock.patch('linkoauth.sstatus.Client')
+        self.mcclient_patcher.start()
+        self.mock_cache = MockCache()
+        sstatus.Client.return_value = self.mock_cache
 
     def tearDown(self):
         httplib2.Http.request = self.old_httplib2
         google_.SMTPRequestor = self.old_smtp
         urllib2.urlopen = self.old_urlopen
+        self.mcclient_patcher.stop()
 
     def test_callbacks(self):
         message = ''

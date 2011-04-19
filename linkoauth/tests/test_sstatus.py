@@ -20,9 +20,12 @@
 #
 # Contributor(s): Tarek Ziade <tarek@ziade.org>
 #
+import mock
 import time
 import unittest
-from linkoauth.sstatus import ServicesStatus, ServicesStatusMiddleware
+from linkoauth import sstatus
+#import ServicesStatus, ServicesStatusMiddleware
+from linkoauth.tests.test_base import MockCache
 
 
 class FakeEnviron(dict):
@@ -39,11 +42,16 @@ class FakeWSGIApp(object):
 class TestServiceStatus(unittest.TestCase):
 
     def setUp(self):
-        self.services = ServicesStatus(['a', 'b', 'c'])
+        self.mcclient_patcher = mock.patch('linkoauth.sstatus.Client')
+        self.mcclient_patcher.start()
+        self.mock_cache = MockCache()
+        sstatus.Client.return_value = self.mock_cache
+        self.services = sstatus.ServicesStatus(['a', 'b', 'c'])
 
     def tearDown(self):
         for service in ['a', 'b', 'c']:
             self.services.initialize(service)
+        self.mcclient_patcher.stop()
 
     def test_io(self):
         self.assertEqual(self.services.get_status('a'),
@@ -63,8 +71,9 @@ class TestServiceStatus(unittest.TestCase):
     def test_middleware(self):
         origin_app = FakeWSGIApp()
         services = ['a', 'b', 'c']
-        tresholds = [0.5, 0.9, 0.1]
-        app = ServicesStatusMiddleware(origin_app, services, tresholds)
+        thresholds = [0.5, 0.9, 0.1]
+        app = sstatus.ServicesStatusMiddleware(origin_app, services,
+                                               thresholds)
 
         # 10 successes, 20 failures
         self._ping_status()
@@ -110,7 +119,7 @@ class TestServiceStatus(unittest.TestCase):
         self.assertEqual(res[0], 'Hello World')
 
     def test_ttl(self):
-        services = ServicesStatus(['d'], ttl=1)
+        services = sstatus.ServicesStatus(['d'], ttl=1)
         try:
             for i in range(10):
                 services.update_status('d', True)
@@ -119,6 +128,7 @@ class TestServiceStatus(unittest.TestCase):
             self.assertEqual(status, (True, 10, 0))
 
             time.sleep(1.)
+            self.mock_cache.pdb = True
             status = self.services.get_status('d')
             self.assertEqual(status, (True, 0, 0))
 

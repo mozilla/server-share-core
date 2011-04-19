@@ -24,11 +24,14 @@ import socket
 import unittest
 import httplib2
 import json
+import mock
 import urllib2
 
 from linkoauth.util import setup_config
 from linkoauth.backends import google_
 from linkoauth import Services
+from linkoauth import sstatus
+from linkoauth.tests.test_base import MockCache
 
 
 _ACCOUNT = {'oauth_token': 'xxx',
@@ -101,11 +104,16 @@ class TestBasics(unittest.TestCase):
         google_.SMTPRequestor = _SMTP
         self.old_urlopen = urllib2.urlopen
         urllib2.urlopen = _urlopen
+        self.mcclient_patcher = mock.patch('linkoauth.sstatus.Client')
+        self.mcclient_patcher.start()
+        self.mock_cache = MockCache()
+        sstatus.Client.return_value = self.mock_cache
 
     def tearDown(self):
         httplib2.Http.request = self.old_httplib2
         google_.SMTPRequestor = self.old_smtp
         urllib2.urlopen = self.old_urlopen
+        self.mcclient_patcher.stop()
 
     def test_callbacks(self):
         message = ''
