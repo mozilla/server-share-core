@@ -57,6 +57,19 @@ class Responder(PluginRegistry):
             return url
         """
 
+    @abc.abstractmethod
+    def verify(self, request, url, session):
+        """Returns an account object
+
+        Args:
+            request: WebOb request object
+            url: Routes URL generator callable
+            session: Session object
+
+        Returns:
+            return json object
+        """
+
 # pre-register provided backends
 Responder.register(twitter_.TwitterResponder)
 Responder.register(facebook_.FacebookResponder)
@@ -155,4 +168,9 @@ class Services(ServicesStatus):
     @_updated
     def request_access(self, domain, request, url, session, **kw):
         return get_responder(domain, **kw).request_access(request, url,
+                                                          session)
+
+    @_updated
+    def verify(self, domain, request, url, session, **kw):
+        return get_responder(domain, **kw).verify(request, url,
                                                           session)
