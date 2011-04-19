@@ -220,8 +220,9 @@ class api():
         url = 'https://api.twitter.com/1/account/verify_credentials.json'
         return self.rawcall(url)
 
-    def getcontacts(self, start=0, page=25, group=None):
-        url = 'https://api.twitter.com/1/statuses/followers.json?screen_name=%s' % self.account.get('username')
+    def getcontacts(self, options={}):
+        cursor = int(options.get('cursor', -1))
+        url = 'https://api.twitter.com/1/statuses/followers.json?screen_name=%s&cursor=%s' % (self.account.get('username'), cursor)
         # for twitter we get only those people who we follow and who follow us
         # since this data is used for direct messaging
         contacts = []
@@ -229,14 +230,19 @@ class api():
         data, error = self.rawcall(url)
         if error:
             return None, error
-        for follower in data:
+        for follower in data.get('users', []):
             contacts.append(twitter_to_poco(follower))
 
         connectedto = {
             'entry': contacts,
             'itemsPerPage': len(contacts),
             'startIndex':   0,
-            'totalResults': len(contacts),
+            'totalResults': len(contacts)
         }
+        nextCursor = data.get('next_cursor', 0)
+        if nextCursor > 0:
+            connectedto['pageData'] = {
+                'cursor': nextCursor
+            }
 
         return connectedto, None

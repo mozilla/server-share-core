@@ -217,8 +217,9 @@ class api():
                         'status': status})
           return error
 
-     def rawcall(self, url, body=None, method="GET"):
-          url = url +"?"+urllib.urlencode(dict(access_token=self.access_token))
+     def rawcall(self, url, body=None, method="GET", params={}):
+          params['access_token'] = self.access_token
+          url = url +"?"+urllib.urlencode(params)
           headers = None
           if body:
                content_type, body = encode_multipart_formdata(body)
@@ -279,11 +280,18 @@ class api():
 
           return self.rawcall(url, body, "POST")
 
-     def getcontacts(self, start=0, page=25, group=None):
-          # for twitter we get only those people who we follow and who follow us
-          # since this data is used for direct messaging
-          url = "https://graph.facebook.com/me/groups"
-          result, error = self.rawcall(url)
+     def getcontacts(self, options={}):
+          offset = int(options.get('offset', 0))
+          limit = int(options.get('limit', 25))
+          type_ = options.get('type', 'groups')
+          params = {
+            'offset': offset,
+            'limit': limit,
+            'type': type_
+          }
+          # using 'friends' would turn this into posting to a friends wall.
+          url = "https://graph.facebook.com/me/%s" % type_
+          result, error = self.rawcall(url, params=params)
           if error:
                return result, error
 
@@ -291,14 +299,21 @@ class api():
           for group in result['data']:
                groups.append({
                     'displayName': group.get('name'),
+                    'type': type_,
                     'accounts': [{'userid': group.get('id'), 'username': None, 'domain': domain}]
                })
 
+          count = len(groups)
           connectedto = {
               'entry': groups,
-              'itemsPerPage': len(groups),
-              'startIndex':   0,
-              'totalResults': len(groups),
+              'itemsPerPage': count,
+              'startIndex':   offset,
           }
+          if count > 0:
+            connectedto['pageData'] = {
+                'offset': offset + count,
+                'limit': limit,
+                'type': type_
+            }
 
           return connectedto, None

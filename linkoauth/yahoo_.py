@@ -26,6 +26,7 @@ import urlparse
 from openid.extensions import ax
 import oauth2 as oauth
 import httplib2
+import urllib
 import json
 import copy
 from rfc822 import AddressList
@@ -182,12 +183,14 @@ class api():
 
         return result, error
 
-    def restcall(self, url, method="GET", body=None):
+    def restcall(self, url, method="GET", body=None, params=None):
         headers = {
             'Content-Type': 'application/json',
             'Accept': 'application/json'
         }
 
+        if params:
+            url = url +"?"+urllib.urlencode(params)
         oauth_request = oauth.Request.from_consumer_and_token(self.consumer,
                                                               token=self.oauth_token,
                                                               http_method=method,
@@ -291,11 +294,16 @@ class api():
 
         return self.jsonrpc(self.endpoints['mail'], 'SendMessage', params, options)
 
-    def getcontacts(self, start=0, page=25, group=None):
+    def getcontacts(self, options={}):
         profile = self.account.get('profile', {})
         guid = profile.get('xoauth_yahoo_guid')
+        params = {
+            'start': int(options.get('start', 0)),
+            'count': int(options.get('count', 50))
+        }
 
-        result, error = self.restcall(self.endpoints['contacts'] % (guid,))
+        result, error = self.restcall(self.endpoints['contacts'] % (guid,),
+                                      params=params)
         if error:
             return result, error
         ycontacts = result.get('contacts')
@@ -320,11 +328,16 @@ class api():
 
             contacts.append(poco)
 
+        count = ycontacts.get('count', 0)
+        start = ycontacts.get('start', 0)
+        total = ycontacts.get('total', 0)
         connectedto = {
             'entry': contacts,
-            'itemsPerPage': ycontacts.get('count', 0),
-            'startIndex':   ycontacts.get('start', 0),
-            'totalResults': ycontacts.get('total', 0),
         }
+        if start + count < total:
+            connectedto['pageData'] = {
+                'count': count,
+                'start': start + count
+            }
 
         return connectedto, None
