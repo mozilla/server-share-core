@@ -136,21 +136,31 @@ class api():
         self.consumer = oauth.Consumer(key=self.consumer_key, secret=self.consumer_secret)
         self.sigmethod = oauth.SignatureMethod_HMAC_SHA1()
 
-    def _make_error(self, data, resp):
+    def _make_error(self, client, data, resp):
         status = int(resp['status'])
 
         # this should be retreived from www-authenticate if provided there,
         # see above comments
         code = data.get('error_code', 0)
         if isinstance(data.get('error', None), dict):
+            # This code is suspect - the error we get back might not conform
+            # to the requirement of our error object (eg, it may not have
+            # a 'message').
+            # For now we just capture the response and see if we should fix
+            # this or just remove it?
+            client.save_capture('error dict response')
             error = copy.copy(data['error'])
         # fallback to their rest error message
         elif 'error' in data:
+            # This is where 'expected' errors will be handled.  Eg:
+            # {"request":"\/1\/statuses\/update.json",
+            #  "error":"Status is a duplicate."}
             error = {
-                'message': data.get('error', 'it\'s an error, kthx'),
+                'message': data['error'],
             }
         # who knows, some other abberation 
         else:
+            client.save_capture('unexpected response')
             error = {
                 'message': "expectedly, an unexpected twitter error: %r"% (data,),
             }
@@ -175,7 +185,7 @@ class api():
         result = error = None
         status = int(resp['status'])
         if status < 200 or status >= 300:
-            error = self._make_error(data, resp)
+            error = self._make_error(client, data, resp)
         else:
             result = data
         return result, error
