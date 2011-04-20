@@ -1,6 +1,5 @@
 
 import json
-import httplib2
 import oauth2 as oauth
 import logging
 from rfc822 import AddressList
@@ -8,6 +7,7 @@ from rfc822 import AddressList
 from linkoauth.base import OAuth1, get_oauth_config, OAuthKeysException
 from linkoauth.util import config, render
 from linkoauth.util import safeHTML, literal
+from linkoauth.protocap import OAuth2Requestor
 
 domain = 'linkedin.com'
 log = logging.getLogger(domain)
@@ -55,17 +55,15 @@ class responder(OAuth1):
         consumer = oauth.Consumer(self.consumer_key, self.consumer_secret)
         token = oauth.Token(access_token['oauth_token'],
                             access_token['oauth_token_secret'])
-        client = oauth.Client(consumer, token)
-
-        oauth_request = oauth.Request.from_consumer_and_token(self.consumer,
-                        token=token, http_url=profile_url)
-        oauth_request.sign_request(self.sigmethod, self.consumer, token)
-        headers = oauth_request.to_header()
+        client = OAuth2Requestor(consumer, token)
+        headers = {}
         headers['x-li-format'] = 'json'
-        resp, content = httplib2.Http.request(client, profile_url,
-                method='GET', headers=headers)
+
+        resp, content = client.request(profile_url, method='GET',
+                                       headers=headers)
 
         if resp['status'] != '200':
+            client.save_capture("non 200 credentials response")
             raise Exception("Error status: %r", resp['status'])
 
         li_profile = json.loads(content)
@@ -93,26 +91,23 @@ class api():
         self.sigmethod = oauth.SignatureMethod_HMAC_SHA1()
 
     def rawcall(self, url, body=None, method="GET"):
-        client = oauth.Client(self.consumer, self.oauth_token)
-
-        oauth_request = oauth.Request.from_consumer_and_token(self.consumer,
-                token=self.oauth_token, http_url=url, http_method=method)
-        oauth_request.sign_request(self.sigmethod, self.consumer,
-                                   self.oauth_token)
-        headers = oauth_request.to_header()
+        client = OAuth2Requestor(self.consumer, self.oauth_token)
+        headers = {}
         headers['x-li-format'] = 'json'
 
-        body = json.dumps(body)
-        headers['Content-type'] = 'application/json'
-        headers['Content-Length'] = str(len(body))
+        if body is not None:
+            body = json.dumps(body)
+            headers['Content-Type'] = 'application/json'
+            headers['Content-Length'] = str(len(body))
 
-        resp, content = httplib2.Http.request(client, url, method=method,
-                headers=headers, body=body)
+        resp, content = client.request(url, method=method,
+                                       headers=headers, body=body)
 
         data = content and json.loads(content) or resp
         result = error = None
         status = int(resp['status'])
         if status < 200 or status >= 300:
+            client.save_capture("non 2xx response")
             error = data
         else:
             result = data
@@ -154,7 +149,7 @@ class api():
 
             profile = self.account.get('profile', {})
             from_ = profile.get('verifiedEmail')
-            fullname = profile.get('displayName', None)
+            fullname = profile.get('displayName')
 
             to_addrs = AddressList(options['to'])
             subject = options.get('subject',
