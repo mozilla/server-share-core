@@ -175,12 +175,10 @@ class Services(ServicesStatus):
         return get_requester(domain, account, **kw).getcontacts(start, page,
                                                                 group)
 
-    @_updated
     def request_access(self, domain, request, url, session, **kw):
         return get_responder(domain, **kw).request_access(request, url,
                                                           session)
 
-    @_updated
     def verify(self, domain, request, url, session, **kw):
         return get_responder(domain, **kw).verify(request, url,
                                                           session)
