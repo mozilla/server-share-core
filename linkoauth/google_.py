@@ -488,7 +488,10 @@ class api():
             if group == this_group:
                 return entry.id.text
 
-    def getcontacts(self, start=0, page=25, group=None):
+    def getcontacts(self, options={}):
+        start = int(options.get('start', 0))
+        page = int(options.get('page', 25))
+        group = options.get('group', None)
         contacts = []
         userdomain = 'default'
 
@@ -548,4 +551,12 @@ class api():
             'startIndex':   feed.start_index.text,
             'totalResults': feed.total_results.text,
         }
+        # create our pageData object if necessary
+        next_start = int(feed.start_index.text) + int(feed.items_per_page.text)
+        if next_start < int(feed.total_results.text):
+            result['pageData'] = {
+                'start': next_start,
+                'page': page,
+                'group': group
+            }
         return result, None
