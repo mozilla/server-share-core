@@ -19,6 +19,7 @@
 # the Initial Developer. All Rights Reserved.
 #
 # Contributor(s):
+#   Rob Miller (rmiller@mozilla.com)
 #
 
 # partially based on code from velruse
@@ -157,21 +158,31 @@ class TwitterRequester(object):
     def get_name(cls):
         return domain
 
-    def _make_error(self, data, resp):
+    def _make_error(self, client, data, resp):
         status = int(resp['status'])
 
         # this should be retreived from www-authenticate if provided there,
         # see above comments
         code = data.get('error_code', 0)
         if isinstance(data.get('error', None), dict):
+            # This code is suspect - the error we get back might not conform
+            # to the requirement of our error object (eg, it may not have
+            # a 'message').
+            # For now we just capture the response and see if we should fix
+            # this or just remove it?
+            client.save_capture('error dict response')
             error = copy.copy(data['error'])
         # fallback to their rest error message
         elif 'error' in data:
+            # This is where 'expected' errors will be handled.  Eg:
+            # {"request":"\/1\/statuses\/update.json",
+            #  "error":"Status is a duplicate."}
             error = {
-                'message': data.get('error', 'it\'s an error, kthx'),
+                'message': data['error'],
             }
         # who knows, some other abberation
         else:
+            client.save_capture('unexpected response')
             error = {
                 'message': "expectedly, an unexpected twitter error: %r"
                 % (data,),
@@ -197,7 +208,7 @@ class TwitterRequester(object):
         result = error = None
         status = int(resp['status'])
         if status < 200 or status >= 300:
-            error = self._make_error(data, resp)
+            error = self._make_error(client, data, resp)
         else:
             result = data
         return result, error
@@ -241,9 +252,11 @@ class TwitterRequester(object):
         url = 'https://api.twitter.com/1/account/verify_credentials.json'
         return self.rawcall(url)
 
-    def getcontacts(self, start=0, page=25, group=None):
+    def getcontacts(self, options={}):
+        cursor = int(options.get('cursor', -1))
         url = ('https://api.twitter.com/1/statuses/followers.json'
-               '?screen_name=%s' % self.account.get('username'))
+               '?screen_name=%s&cursor=%s'
+               % (self.account.get('username'), cursor))
         # for twitter we get only those people who we follow and who follow us
         # since this data is used for direct messaging
         contacts = []
@@ -251,7 +264,7 @@ class TwitterRequester(object):
         data, error = self.rawcall(url)
         if error:
             return None, error
-        for follower in data:
+        for follower in data.get('users', []):
             contacts.append(twitter_to_poco(follower))
 
         connectedto = {
@@ -260,5 +273,10 @@ class TwitterRequester(object):
             'startIndex':   0,
             'totalResults': len(contacts),
         }
+        nextCursor = data.get('next_cursor', 0)
+        if nextCursor > 0:
+            connectedto['pageData'] = {
+                'cursor': nextCursor,
+            }
 
         return connectedto, None

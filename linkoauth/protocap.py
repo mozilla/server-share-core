@@ -137,7 +137,7 @@ class HttpRequestor(ProtocolCapturingBase):
 
     def request(self, uri, method="GET", body='', headers=None):
         response, data = self.http.request(uri, method, body, headers)
-        if (response['status'] == '200' and
+        if (300 > int(response['status']) >= 200 and
             asbool(config.get('protocol_capture_success'))):
             self.save_capture("automatic success save")
         return response, data
