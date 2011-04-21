@@ -131,11 +131,12 @@ class api():
         if status >= 500:
             raise ServiceUnavailableException(debug_message=content)
 
-    def jsonrpc(self, url, method, args, options={}):
-        headers = {
+    def jsonrpc(self, url, method, args, options={}, headers=None):
+        headers = headers or {}
+        headers.update({
             'Content-Type': 'application/json',
             'Accept': 'application/json'
-        }
+        })
         if options.get('HumanVerification'):
             headers['X-HumanVerification-ImageUrl'] = options.get('HumanVerificationImage')
             headers['X-HumanVerification-Answer'] = options.get('HumanVerification')
@@ -182,11 +183,12 @@ class api():
 
         return result, error
 
-    def restcall(self, url, method="GET", body=None):
-        headers = {
+    def restcall(self, url, method="GET", body=None, headers=None):
+        headers = headers or {}
+        headers.update({
             'Content-Type': 'application/json',
             'Accept': 'application/json'
-        }
+        })
 
         oauth_request = oauth.Request.from_consumer_and_token(self.consumer,
                                                               token=self.oauth_token,
@@ -215,7 +217,7 @@ class api():
 
         return result, error
 
-    def sendmessage(self, message, options={}):
+    def sendmessage(self, message, options, headers):
         profile = self.account.get('profile', {})
         from_ = profile.get('verifiedEmail')
         fullname = profile.get('displayName', None)
@@ -289,13 +291,15 @@ class api():
                  "savecopy":1
                 }]
 
-        return self.jsonrpc(self.endpoints['mail'], 'SendMessage', params, options)
+        return self.jsonrpc(self.endpoints['mail'], 'SendMessage', params,
+                            options, headers)
 
-    def getcontacts(self, start=0, page=25, group=None):
+    def getcontacts(self, start, page, group, headers):
         profile = self.account.get('profile', {})
         guid = profile.get('xoauth_yahoo_guid')
 
-        result, error = self.restcall(self.endpoints['contacts'] % (guid,))
+        result, error = self.restcall(self.endpoints['contacts'] % (guid,),
+                                      headers=headers)
         if error:
             return result, error
         ycontacts = result.get('contacts')

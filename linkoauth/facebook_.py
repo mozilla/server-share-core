@@ -217,15 +217,15 @@ class api():
                         'status': status})
           return error
 
-     def rawcall(self, url, body=None, method="GET"):
+     def rawcall(self, url, body=None, method="GET", headers=None):
           url = url +"?"+urllib.urlencode(dict(access_token=self.access_token))
-          headers = None
+          headers = headers or {}
           if body:
                content_type, body = encode_multipart_formdata(body)
-               headers = {
-                    'Content-type': content_type,
+               headers.update({
+                    'Content-Type': content_type,
                     'Content-Length': str(len(body))
-               }
+               })
           client = HttpRequestor()
           resp, content = client.request(url, method=method, headers=headers, body=body)
 
@@ -259,7 +259,7 @@ class api():
           'caption': 'caption',
           'source': 'source'
      }
-     def sendmessage(self, message, options={}):
+     def sendmessage(self, message, options, headers):
           share_type = options.get('shareType', None)
           if share_type == 'groupWall':
                direct = options.get('to', None)
@@ -277,13 +277,13 @@ class api():
                if ours in options:
                     body[yours] = options[ours]
 
-          return self.rawcall(url, body, "POST")
+          return self.rawcall(url, body, "POST", headers=headers)
 
-     def getcontacts(self, start=0, page=25, group=None):
+     def getcontacts(self, start, page, group, headers):
           # for twitter we get only those people who we follow and who follow us
           # since this data is used for direct messaging
           url = "https://graph.facebook.com/me/groups"
-          result, error = self.rawcall(url)
+          result, error = self.rawcall(url, headers=headers)
           if error:
                return result, error
 

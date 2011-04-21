@@ -26,32 +26,33 @@ class TestBasics(unittest.TestCase):
     def test_no_share_type(self):
         provider = get_provider("linkedin.com")
         api = provider.api(_ACCOUNT)
-        res, error = api.sendmessage('', self.get_args())
+        res, error = api.sendmessage('', self.get_args(), None)
         self.check_error(res, error)
 
     def test_invalid_share_type(self):
         provider = get_provider("linkedin.com")
         api = provider.api(_ACCOUNT)
-        res, error = api.sendmessage('', self.get_args(shareType="invalid"))
+        res, error = api.sendmessage('', self.get_args(shareType="invalid"),
+                                     None)
         self.check_error(res, error)
 
     def test_invalid_public_share_type(self):
         provider = get_provider("linkedin.com")
         api = provider.api(_ACCOUNT)
         args = self.get_args(shareType="public", to="invalid")
-        res, error = api.sendmessage('', args)
+        res, error = api.sendmessage('', args, None)
         self.check_error(res, error)
 
     def test_invalid_connections_share_type(self):
         provider = get_provider("linkedin.com")
         api = provider.api(_ACCOUNT)
         args = self.get_args(shareType="myConnections", to="invalid")
-        res, error = api.sendmessage('', args)
+        res, error = api.sendmessage('', args, None)
         self.check_error(res, error)
 
     def test_contact_no_to(self):
         provider = get_provider("linkedin.com")
         api = provider.api(_ACCOUNT)
         args = self.get_args(shareType='contact', to='')
-        res, error = api.sendmessage('', args)
+        res, error = api.sendmessage('', args, None)
         self.check_error(res, error)

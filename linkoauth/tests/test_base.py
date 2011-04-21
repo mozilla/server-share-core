@@ -100,6 +100,6 @@ class TestBasics(unittest.TestCase):
             this_args = args.copy()
             if provname in share_types:
                 this_args['shareType'] = share_types[provname]
-            res, error = api.sendmessage(message, this_args)
+            res, error = api.sendmessage(message, this_args, None)
             self.assertFalse(error, str(error))
             self.assertTrue(res['status'] in (200, 'message sent'))

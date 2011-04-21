@@ -90,9 +90,9 @@ class api():
                                        secret=self.consumer_secret)
         self.sigmethod = oauth.SignatureMethod_HMAC_SHA1()
 
-    def rawcall(self, url, body=None, method="GET"):
+    def rawcall(self, url, body=None, method="GET", headers=None):
         client = OAuth2Requestor(self.consumer, self.oauth_token)
-        headers = {}
+        headers = headers or {}
         headers['x-li-format'] = 'json'
 
         if body is not None:
@@ -114,7 +114,7 @@ class api():
 
         return result, error
 
-    def sendmessage(self, message, options={}):
+    def sendmessage(self, message, options, headers):
         share_type = str(options.get('shareType', ''))
         if not share_type or share_type not in \
             ('public', 'myConnections', 'contact'):
@@ -192,15 +192,15 @@ class api():
                 'subject': subject,
                 'body': text_message}
 
-        return self.rawcall(url, body, method="POST")
+        return self.rawcall(url, body, method="POST", headers=headers)
 
-    def getcontacts(self, start=0, page=25, group=None):
+    def getcontacts(self, start, page, group, headers):
         contacts = []
         url = 'http://api.linkedin.com/v1/people/~/connections?count=%d' % page
         if start > 0:
             url = url + "&start=%d" % (start,)
 
-        result, error = self.rawcall(url, method="GET")
+        result, error = self.rawcall(url, method="GET", headers=headers)
         if error:
             return result, error
 

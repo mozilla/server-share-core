@@ -315,7 +315,7 @@ class api():
         self.consumer = oauth.Consumer(key=self.consumer_key,
                 secret=self.consumer_secret)
 
-    def sendmessage(self, message, options={}):
+    def sendmessage(self, message, options, headers):
         result = error = None
 
         profile = self.account.get('profile', {})
@@ -475,11 +475,11 @@ class api():
             result = {"status": "message sent"}
         return result, error
 
-    def getgroup_id(self, group):
+    def getgroup_id(self, group, headers):
         url = 'https://www.google.com/m8/feeds/groups/default/full?v=2'
         method = 'GET'
         client = oauth.Client(self.consumer, self.oauth_token)
-        resp, content = client.request(url, method)
+        resp, content = client.request(url, method, headers=headers)
         feed = gdata.contacts.GroupsFeedFromString(content)
         for entry in feed.entry:
             this_group = entry.content.text
@@ -488,7 +488,7 @@ class api():
             if group == this_group:
                 return entry.id.text
 
-    def getcontacts(self, start=0, page=25, group=None):
+    def getcontacts(self, start, page, group, headers):
         contacts = []
         userdomain = 'default'
 
@@ -512,7 +512,7 @@ class api():
         if start > 0:
             url = url + "&start-index=%d" % (start,)
         if group:
-            gid = self.getgroup_id(group)
+            gid = self.getgroup_id(group, headers)
             if not gid:
                 error = {"provider": domain,
                          "message": "Group '%s' not available" % group}
@@ -521,7 +521,7 @@ class api():
 
         # itemsPerPage, startIndex, totalResults
         requestor = OAuth2Requestor(self.consumer, self.oauth_token)
-        resp, content = requestor.request(url, method)
+        resp, content = requestor.request(url, method, headers=headers)
 
         if int(resp.status) != 200:
             requestor.save_capture("contact fetch failure")

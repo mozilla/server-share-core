@@ -26,18 +26,19 @@ class TestBasics(unittest.TestCase):
     def test_no_share_type(self):
         provider = get_provider("twitter.com")
         api = provider.api(_ACCOUNT)
-        res, error = api.sendmessage('', self.get_args())
+        res, error = api.sendmessage('', self.get_args(), None)
         self.check_error(res, error)
 
     def test_invalid_share_type(self):
         provider = get_provider("twitter.com")
         api = provider.api(_ACCOUNT)
-        res, error = api.sendmessage('', self.get_args(shareType="invalid"))
+        res, error = api.sendmessage('', self.get_args(shareType="invalid"),
+                                     None)
         self.check_error(res, error)
 
     def test_direct_no_to(self):
         provider = get_provider("twitter.com")
         api = provider.api(_ACCOUNT)
         args = self.get_args(shareType='direct', to='')
-        res, error = api.sendmessage('', args)
+        res, error = api.sendmessage('', args, None)
         self.check_error(res, error)

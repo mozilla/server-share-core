@@ -171,14 +171,14 @@ class api():
                       'status': status})
         return error
 
-    def rawcall(self, url, params=None, method="GET"):
+    def rawcall(self, url, params=None, method="GET", headers=None):
         client = OAuth2Requestor(self.consumer, self.oauth_token)
         if method=="POST":
             body = urlencode(params)
         else:
             assert params is None
             body = ''
-        resp, content = client.request(url, method, body=body)
+        resp, content = client.request(url, method, body=body, headers=headers)
 
         data = content and json.loads(content) or resp
 
@@ -190,7 +190,7 @@ class api():
             result = data
         return result, error
 
-    def sendmessage(self, message, options={}):
+    def sendmessage(self, message, options, headers):
         result = error = None
         # insert the url if it is not already in the message
         longurl = options.get('link')
@@ -224,19 +224,19 @@ class api():
             return None, {'code': 400,
                           'provider': domain,
                           'message': 'Share type is missing'}
-        return self.rawcall(url, params=body, method="POST")
+        return self.rawcall(url, params=body, method="POST", headers=headers)
 
     def profile(self):
         url = 'https://api.twitter.com/1/account/verify_credentials.json'
         return self.rawcall(url)
 
-    def getcontacts(self, start=0, page=25, group=None):
+    def getcontacts(self, start, page, group, headers):
         url = 'https://api.twitter.com/1/statuses/followers.json?screen_name=%s' % self.account.get('username')
         # for twitter we get only those people who we follow and who follow us
         # since this data is used for direct messaging
         contacts = []
 
-        data, error = self.rawcall(url)
+        data, error = self.rawcall(url, headers=headers)
         if error:
             return None, error
         for follower in data:
