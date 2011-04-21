@@ -159,7 +159,7 @@ class Services(ServicesStatus):
                     self.update_status(domain, True)
                 raise
             else:
-                if (len(res) == 2 and res[0] is not None  and
+                if (len(res) == 2 and res[0] is not None and
                     self.feedback_enabled):
                     self.update_status(domain, True)
             return res
