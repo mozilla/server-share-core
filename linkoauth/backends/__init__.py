@@ -121,7 +121,7 @@ def get_requester(domain, account, **kw):
         # other cases which will generate a TypeError?  The string check here
         # is a weak attempt at preventing other TypeErrors from getting turned
         # into OAuthKeysExceptions.
-        if "could not load" in e.message:
+        if "could not load" in str(e):
             raise OAuthKeysException('OAuth values problem w/ %s' % domain)
         else:
             raise
