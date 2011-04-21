@@ -28,6 +28,7 @@ from services.pluginreg import PluginRegistry
 from linkoauth.backends import facebook_, google_, twitter_, yahoo_, linkedin_
 from linkoauth.sstatus import ServicesStatus
 from linkoauth.errors import BackendError, DomainNotRegisteredError
+from linkoauth.errors import OAuthKeysException
 
 #from linkoauth.live_ import LiveResponder
 #from linkoauth.openidconsumer import OpenIDResponder
@@ -115,6 +116,15 @@ def get_requester(domain, account, **kw):
         return Requester.get(domain, account=account, **kw)
     except KeyError:
         raise DomainNotRegisteredError(domain)
+    except TypeError, e:
+        # XXX We get a TypeError if the oauth values are bad, but are there any
+        # other cases which will generate a TypeError?  The string check here
+        # is a weak attempt at preventing other TypeErrors from getting turned
+        # into OAuthKeysExceptions.
+        if "could not load" in e.message:
+            raise OAuthKeysException('OAuth values problem w/ %s' % domain)
+        else:
+            raise
 
 
 # high-level
