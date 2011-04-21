@@ -194,7 +194,9 @@ class api():
 
         return self.rawcall(url, body, method="POST")
 
-    def getcontacts(self, start=0, page=25, group=None):
+    def getcontacts(self, options={}):
+        start = int(options.get('start', 0))
+        page = int(options.get('page', 25))
         contacts = []
         url = 'http://api.linkedin.com/v1/people/~/connections?count=%d' % page
         if start > 0:
@@ -210,11 +212,16 @@ class api():
         for entry in entries:
             contacts.append(extract_li_data(entry))
 
+        count = result.get('_count', result.get('_total', 0))
+        start = result.get('_start', 0)
+        total = result.get('_total', 0)
         connectedto = {
             'entry': contacts,
-            'itemsPerPage': result.get('_count', result.get('_total', 0)),
-            'startIndex':   result.get('_start', 0),
-            'totalResults': result.get('_total'),
         }
+        if start + count < total:
+            connectedto['pageData'] = {
+                'count': count,
+                'start': start + count
+            }
 
         return connectedto, error
