@@ -307,7 +307,7 @@ class api():
           connectedto = {
               'entry': groups,
               'itemsPerPage': count,
-              'startIndex':   offset,
+              'startIndex':   offset
           }
           if count > 0:
             connectedto['pageData'] = {
