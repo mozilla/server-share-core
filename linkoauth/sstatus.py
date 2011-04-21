@@ -18,7 +18,9 @@
 # Portions created by the Initial Developer are Copyright (C) 2009
 # the Initial Developer. All Rights Reserved.
 #
-# Contributor(s): Tarek Ziade <tarek@ziade.org>
+# Contributor(s):
+#   Tarek Ziade <tarek@ziade.org>
+#   Rob Miller (rmiller@mozilla.com)
 #
 """
 This module provides:
@@ -46,6 +48,7 @@ The statuses are saved in a membase backend that can be replicated around
 using the peer-to-peer replication feature.
 """
 import sys
+from functools import wraps
 
 from pylibmc import Client, SomeErrors, WriteError
 from _pylibmc import NotFound
@@ -57,23 +60,32 @@ def _key(*args):
     return ':'.join(args)
 
 
-class ServicesStatus(object):
+def cache_initialized(fn):
+    @wraps(fn)
+    def initializer(self, *args, **kwargs):
+        if getattr(self, '_initialized', False):
+            # already initialized, scrap the decorator
+            setattr(self, fn.__name__, fn)
+        else:
+            for service in self.services:
+                # initialize if not found
+                try:
+                    enabled = self._cache.get(_key('service', service, 'on'))
+                except SomeErrors:
+                    raise StatusReadError()
+                if enabled is None:
+                    self.initialize(service)
+        return fn(self, *args, **kwargs)
+    return initializer
 
-    def __init__(self, services, servers=None, ttl=600):
+
+class ServicesStatusCache(object):
+    """Thin wrapper around cache client to allow for graceful initialization"""
+    def __init__(self, servers, services, ttl, binary):
+        self.services = services
         self.ttl = ttl
-        if servers is None:
-            servers = ['127.0.0.1:11211']
-        self._cache = Client(servers, binary=True)
+        self._cache = Client(servers, binary=binary)
         self._cache.behaviors = {"no_block": True}
-        for service in services:
-            # initialize if not found
-            try:
-                enabled = self._cache.get(_key('service', service, 'on'))
-            except SomeErrors:
-                raise StatusReadError()
-
-            if enabled is None:
-                self.initialize(service)
 
     def initialize(self, service):
         # XXX see if one key is better wrt R/W numbers
@@ -87,6 +99,30 @@ class ServicesStatus(object):
             return True
         except WriteError:
             raise StatusWriteError()
+
+    @cache_initialized
+    def get(self, key):
+        return self._cache.get(key)
+
+    @cache_initialized
+    def set(self, key, *args, **kwargs):
+        return self._cache.set(key, *args, **kwargs)
+
+    @cache_initialized
+    def incr(self, key):
+        return self._cache.incr(key)
+
+
+class ServicesStatus(object):
+
+    def __init__(self, services, servers=None, ttl=600):
+        self.ttl = ttl
+        if servers is None:
+            servers = ['127.0.0.1:11211']
+        self._cache = ServicesStatusCache(servers, services, ttl, binary=True)
+
+    def initialize(self, service):
+        self._cache.initialize(service)
 
     def enable(self, service):
         try:
