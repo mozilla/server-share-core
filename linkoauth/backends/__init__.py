@@ -171,9 +171,8 @@ class Services(ServicesStatus):
                                                           **kw)
 
     @_updated
-    def getcontacts(self, domain, account, start=0, page=25, group=None, **kw):
-        return get_requester(domain, account, **kw).getcontacts(start, page,
-                                                                group)
+    def getcontacts(self, domain, account, page_data=None, **kw):
+        return get_requester(domain, account, **kw).getcontacts(page_data)
 
     def request_access(self, domain, request, url, session, **kw):
         return get_responder(domain, **kw).request_access(request, url,
