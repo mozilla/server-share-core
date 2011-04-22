@@ -213,7 +213,9 @@ class TwitterRequester(object):
             result = data
         return result, error
 
-    def sendmessage(self, message, options={}):
+    def sendmessage(self, message, options=None):
+        if options is None:
+            options = {}
         # insert the url if it is not already in the message
         longurl = options.get('link')
         shorturl = options.get('shorturl')
@@ -252,7 +254,9 @@ class TwitterRequester(object):
         url = 'https://api.twitter.com/1/account/verify_credentials.json'
         return self.rawcall(url)
 
-    def getcontacts(self, options={}):
+    def getcontacts(self, options=None):
+        if options is None:
+            options = {}
         cursor = int(options.get('cursor', -1))
         url = ('https://api.twitter.com/1/statuses/followers.json'
                '?screen_name=%s&cursor=%s'

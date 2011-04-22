@@ -281,7 +281,9 @@ class FacebookRequester(object):
         'caption': 'caption',
         'source': 'source'}
 
-    def sendmessage(self, message, options={}):
+    def sendmessage(self, message, options=None):
+        if options is None:
+            options = {}
         share_type = options.get('shareType', None)
         if share_type == 'groupWall':
             direct = options.get('to', None)

@@ -333,7 +333,9 @@ class GoogleRequester(object):
     def get_name(cls):
         return domain
 
-    def sendmessage(self, message, options={}):
+    def sendmessage(self, message, options=None):
+        if options is None:
+            options = {}
         result = error = None
 
         profile = self.account.get('profile', {})
@@ -516,7 +518,9 @@ class GoogleRequester(object):
             if group == this_group:
                 return entry.id.text
 
-    def getcontacts(self, options={}):
+    def getcontacts(self, options=None):
+        if options is None:
+            options = {}
         start = int(options.get('start', 0))
         page = int(options.get('page', 25))
         group = options.get('group', None)

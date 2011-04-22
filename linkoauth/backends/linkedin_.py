@@ -143,7 +143,9 @@ class api(object):
 
         return result, error
 
-    def sendmessage(self, message, options={}):
+    def sendmessage(self, message, options=None):
+        if options is None:
+            options = {}
         share_type = str(options.get('shareType', ''))
         if not share_type or share_type not in \
             ('public', 'myConnections', 'contact'):
@@ -224,7 +226,9 @@ class api(object):
 
         return self.rawcall(url, body, method="POST")
 
-    def getcontacts(self, options={}):
+    def getcontacts(self, options=None):
+        if options is None:
+            options = {}
         start = int(options.get('start', 0))
         page = int(options.get('page', 25))
         contacts = []
@@ -251,7 +255,7 @@ class api(object):
         if start + count < total:
             connectedto['pageData'] = {
                 'count': count,
-                'start': start + count
+                'start': start + count,
             }
 
         return connectedto, error

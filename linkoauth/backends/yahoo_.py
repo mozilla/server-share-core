@@ -150,7 +150,9 @@ class YahooRequester(object):
         if status >= 500:
             raise ServiceUnavailableException(debug_message=content)
 
-    def jsonrpc(self, url, method, args, options={}):
+    def jsonrpc(self, url, method, args, options=None):
+        if options is None:
+            options = {}
         headers = {'Content-Type': 'application/json',
                    'Accept': 'application/json'}
 
@@ -241,7 +243,9 @@ class YahooRequester(object):
 
         return result, error
 
-    def sendmessage(self, message, options={}):
+    def sendmessage(self, message, options=None):
+        if options is None:
+            options = {}
         profile = self.account.get('profile', {})
         from_ = profile.get('verifiedEmail')
         fullname = profile.get('displayName', None)
@@ -319,7 +323,9 @@ class YahooRequester(object):
         return self.jsonrpc(self.endpoints['mail'],
                             'SendMessage', params, options)
 
-    def getcontacts(self, options={}):
+    def getcontacts(self, options=None):
+        if options is None:
+            options = {}
         profile = self.account.get('profile', {})
         guid = profile.get('xoauth_yahoo_guid')
         params = {
