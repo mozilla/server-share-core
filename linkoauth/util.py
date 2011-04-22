@@ -1,3 +1,25 @@
+# ***** BEGIN LICENSE BLOCK *****
+# Version: MPL 1.1
+#
+# The contents of this file are subject to the Mozilla Public License Version
+# 1.1 (the "License"); you may not use this file except in compliance with
+# the License. You may obtain a copy of the License at
+# http://www.mozilla.org/MPL/
+#
+# Software distributed under the License is distributed on an "AS IS" basis,
+# WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+# for the specific language governing rights and limitations under the
+# License.
+#
+# The Original Code is Raindrop.
+#
+# The Initial Developer of the Original Code is
+# Mozilla Messaging, Inc..
+# Portions created by the Initial Developer are Copyright (C) 2009
+# the Initial Developer. All Rights Reserved.
+#
+# Contributor(s):
+#
 import os
 import sgmllib
 import string
@@ -76,7 +98,8 @@ def render(template_name, extra_vars=None, cache_key=None,
 
         return literal(template.render_unicode(**globs))
 
-    return _cached_template(template_name, render_template, cache_key=cache_key,
+    return _cached_template(template_name, render_template,
+                            cache_key=cache_key,
                             cache_type=cache_type, cache_expire=cache_expire)
 
 
@@ -92,7 +115,6 @@ config = DispatchingConfig()
 
 def setup_config(appconfig):
     config.push_process_config(appconfig)
-
 
 
 def _cached_template(template_name, render_func, ns_options=(),
@@ -119,6 +141,7 @@ def _cached_template(template_name, render_func, ns_options=(),
         return render_func()
 
 ## {{{ http://code.activestate.com/recipes/52281/ (r1) PSF License
+
 
 class StrippingParser(sgmllib.SGMLParser):
 
@@ -150,7 +173,8 @@ class StrippingParser(sgmllib.SGMLParser):
         if tag in self.valid_tags:
             self.result = self.result + '<' + tag
             for k, v in attrs:
-                if string.lower(k[0:2]) != 'on' and string.lower(v[0:10]) != 'javascript':
+                if (string.lower(k[0:2]) != 'on' and
+                    string.lower(v[0:10]) != 'javascript'):
                     self.result = '%s %s="%s"' % (self.result, k, v)
             endTag = '</%s>' % tag
             self.endTagList.insert(0, endTag)
@@ -166,6 +190,7 @@ class StrippingParser(sgmllib.SGMLParser):
         """ Append missing closing tags """
         for j in range(len(self.endTagList)):
                 self.result = self.result + self.endTagList[j]
+
 
 def safeHTML(s):
     """ Strip illegal HTML tags from string s """

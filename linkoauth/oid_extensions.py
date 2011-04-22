@@ -29,6 +29,7 @@ original code from velruse
 """
 from openid import extension
 
+
 class UIRequest(extension.Extension):
     """OpenID UI extension"""
     ns_uri = 'http://specs.openid.net/extensions/ui/1.0'

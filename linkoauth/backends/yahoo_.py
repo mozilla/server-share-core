@@ -25,20 +25,20 @@ import urlparse
 
 from openid.extensions import ax
 import oauth2 as oauth
-import httplib2
 import urllib
 import json
 import copy
 from rfc822 import AddressList
 import logging
 
-from linkoauth.util import config
-from linkoauth.util import asbool, render, safeHTML, literal
+from linkoauth.util import asbool, render, safeHTML, literal, config
 from linkoauth.oid_extensions import OAuthRequest
 from linkoauth.openidconsumer import ax_attributes, attributes
 from linkoauth.openidconsumer import OpenIDResponder
-from linkoauth.base import get_oauth_config, OAuthKeysException, ServiceUnavailableException
+from linkoauth.oauth import get_oauth_config
 from linkoauth.protocap import HttpRequestor
+from linkoauth.errors import (OptionError, OAuthKeysException,
+                              ServiceUnavailableException)
 
 YAHOO_OAUTH = 'https://api.login.yahoo.com/oauth/v2/get_token'
 
@@ -46,9 +46,12 @@ domain = 'yahoo.com'
 log = logging.getLogger(domain)
 
 
-class responder(OpenIDResponder):
-    def __init__(self, consumer=None, oauth_key=None, oauth_secret=None, request_attributes=None, *args,
-                 **kwargs):
+class YahooResponder(OpenIDResponder):
+
+    domain = 'yahoo.com'
+
+    def __init__(self, consumer=None, oauth_key=None, oauth_secret=None,
+                 request_attributes=None, *args, **kwargs):
         """Handle Google Auth
 
         This also handles making an OAuth request during the OpenID
@@ -56,12 +59,18 @@ class responder(OpenIDResponder):
 
         """
         OpenIDResponder.__init__(self, domain)
+        self.domain = domain
         self.consumer_key = self.config.get('consumer_key')
         self.consumer_secret = self.config.get('consumer_secret')
         if not asbool(self.config.get('verified')):
-            self.return_to_query['domain_unverified']=1
-        # yahoo openid only works in stateless mode, do not use the openid_store
+            self.return_to_query['domain_unverified'] = 1
+        # yahoo openid only works in stateless mode,
+        # do not use the openid_store
         self.openid_store = None
+
+    @classmethod
+    def get_name(cls):
+        return cls.domain
 
     def _lookup_identifier(self, identifier):
         """Return the Yahoo OpenID directed endpoint"""
@@ -69,10 +78,12 @@ class responder(OpenIDResponder):
 
     def _update_authrequest(self, authrequest, request):
         # Add on the Attribute Exchange for those that support that
-        request_attributes = request.POST.get('ax_attributes', ax_attributes.keys())
+        request_attributes = request.POST.get('ax_attributes',
+                                              ax_attributes.keys())
         ax_request = ax.FetchRequest()
         for attr in request_attributes:
-            ax_request.add(ax.AttrInfo(attributes[attr], required=False, count=1))
+            ax_request.add(ax.AttrInfo(attributes[attr], required=False,
+                                       count=1))
         authrequest.addExtension(ax_request)
 
         # Add OAuth request?
@@ -93,7 +104,7 @@ class responder(OpenIDResponder):
         profile = result_data['profile']
         userid = profile['verifiedEmail']
         username = profile['preferredUsername']
-        profile['emails'] = [{'value': userid, 'primary': True }]
+        profile['emails'] = [{'value': userid, 'primary': True}]
         account = {'domain': domain,
                    'userid': userid,
                    'username': username}
@@ -102,24 +113,31 @@ class responder(OpenIDResponder):
         return result_data
 
 
-class api():
+class YahooRequester(object):
     endpoints = {
-        "mail":"http://mail.yahooapis.com/ws/mail/v1.1/jsonrpc",
-        "contacts":"http://social.yahooapis.com/v1/user/%s/contacts"
-    }
+        "mail": "http://mail.yahooapis.com/ws/mail/v1.1/jsonrpc",
+        "contacts": "http://social.yahooapis.com/v1/user/%s/contacts"}
 
     def __init__(self, account):
+        self.account = account
+        self.domain = domain
         self.config = get_oauth_config(domain)
         self.account = account
         try:
-            self.oauth_token = oauth.Token(key=account.get('oauth_token'), secret=account.get('oauth_token_secret'))
+            self.oauth_token = oauth.Token(key=account.get('oauth_token'),
+                                     secret=account.get('oauth_token_secret'))
         except ValueError, e:
             # missing oauth tokens, raise our own exception
             raise OAuthKeysException(str(e))
         self.consumer_key = self.config.get('consumer_key')
         self.consumer_secret = self.config.get('consumer_secret')
-        self.consumer = oauth.Consumer(key=self.consumer_key, secret=self.consumer_secret)
+        self.consumer = oauth.Consumer(key=self.consumer_key,
+                                       secret=self.consumer_secret)
         self.sigmethod = oauth.SignatureMethod_HMAC_SHA1()
+
+    @classmethod
+    def get_name(cls):
+        return domain
 
     def _maybe_throw_response_exception(self, resp, content):
         # maybe throw one of our internal response exceptions based on the
@@ -132,27 +150,33 @@ class api():
         if status >= 500:
             raise ServiceUnavailableException(debug_message=content)
 
-    def jsonrpc(self, url, method, args, options={}):
-        headers = {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-        }
+    def jsonrpc(self, url, method, args, options=None):
+        if options is None:
+            options = {}
+        headers = {'Content-Type': 'application/json',
+                   'Accept': 'application/json'}
+
         if options.get('HumanVerification'):
-            headers['X-HumanVerification-ImageUrl'] = options.get('HumanVerificationImage')
-            headers['X-HumanVerification-Answer'] = options.get('HumanVerification')
+            headers['X-HumanVerification-ImageUrl'] = \
+                    options.get('HumanVerificationImage')
+            headers['X-HumanVerification-Answer'] = \
+                    options.get('HumanVerification')
         # simple jsonrpc call
-        postdata = json.dumps({"method": method, 'params': args, 'id':'jsonrpc'})
+        postdata = json.dumps({"method": method, 'params': args,
+                               'id': 'jsonrpc'})
         postdata = postdata.encode("utf-8")
 
         oauth_request = oauth.Request.from_consumer_and_token(self.consumer,
-                                                              token=self.oauth_token,
-                                                              http_method='POST',
-                                                              http_url=url)
-        oauth_request.sign_request(self.sigmethod, self.consumer, self.oauth_token)
+                                                        token=self.oauth_token,
+                                                        http_method='POST',
+                                                        http_url=url)
+        oauth_request.sign_request(self.sigmethod, self.consumer,
+                                   self.oauth_token)
         headers.update(oauth_request.to_header())
 
         client = HttpRequestor()
-        resp, content = client.request(url, 'POST', headers=headers, body=postdata)
+        resp, content = client.request(url, 'POST', headers=headers,
+                                       body=postdata)
         self._maybe_throw_response_exception(resp, content)
         try:
             response = json.loads(content)
@@ -177,7 +201,7 @@ class api():
         else:
             client.save_capture("unexpected response")
             error = {'provider': domain,
-                     'message': "unexpected yahoo response: %r"% (response,),
+                     'message': "unexpected yahoo response: %r" % (response,),
                      'status': int(resp['status'])}
             log.error("unexpected yahoo response: %r", response)
 
@@ -186,20 +210,21 @@ class api():
     def restcall(self, url, method="GET", body=None, params=None):
         headers = {
             'Content-Type': 'application/json',
-            'Accept': 'application/json'
-        }
+            'Accept': 'application/json'}
 
         if params:
-            url = url +"?"+urllib.urlencode(params)
+            url = url + "?" + urllib.urlencode(params)
         oauth_request = oauth.Request.from_consumer_and_token(self.consumer,
-                                                              token=self.oauth_token,
-                                                              http_method=method,
-                                                              http_url=url)
-        oauth_request.sign_request(self.sigmethod, self.consumer, self.oauth_token)
+                                                        token=self.oauth_token,
+                                                        http_method=method,
+                                                        http_url=url)
+        oauth_request.sign_request(self.sigmethod, self.consumer,
+                                   self.oauth_token)
         headers.update(oauth_request.to_header())
 
         client = HttpRequestor()
-        resp, content = client.request(url, method, headers=headers, body=body)
+        resp, content = client.request(url, method, headers=headers,
+                                       body=body)
         self._maybe_throw_response_exception(resp, content)
         try:
             data = content and json.loads(content) or resp
@@ -218,33 +243,39 @@ class api():
 
         return result, error
 
-    def sendmessage(self, message, options={}):
+    def sendmessage(self, message, options=None):
+        if options is None:
+            options = {}
         profile = self.account.get('profile', {})
         from_ = profile.get('verifiedEmail')
         fullname = profile.get('displayName', None)
 
         address_list = AddressList(options.get('to', ''))
-        if len(address_list)==0:
+        if len(address_list) == 0:
             return None, {
                 "provider": domain,
                 "message": "recipient address must be specified",
-                "status": 0
-            }
+                "status": 0}
+
         to_ = []
         for addr in address_list:
             if not addr[1] or not '@' in addr[1]:
                 return None, {
                     "provider": domain,
-                    "message": "recipient address '%s' is invalid" % (addr[1],),
-                    "status": 0
-                }
+                    "message": "recipient address '%s' is invalid" % \
+                            (addr[1],),
+                    "status": 0}
+
             # expect normal email address formats, parse them
             to_.append({'name': addr[0], 'email': addr[1]})
 
-        assert to_ # we caught all cases where it could now be empty.
+        if len(to_) == 0:
+            raise OptionError('the To header cannot be empty')
 
-        subject = options.get('subject', config.get('share_subject', 'A web link has been shared with you'))
-        title = options.get('title', options.get('link', options.get('shorturl', '')))
+        subject = options.get('subject', config.get('share_subject',
+                              'A web link has been shared with you'))
+        title = options.get('title', options.get('link',
+                            options.get('shorturl', '')))
         description = options.get('description', '')[:280]
 
         extra_vars = {'safeHTML': safeHTML}
@@ -286,15 +317,15 @@ class api():
                      "to":to_,
                      "simplebody":{
                         "text": text_message,
-                        "html": html_message
-                     }
-                    },
-                 "savecopy":1
-                }]
+                        "html": html_message}},
+                "savecopy":1}]
 
-        return self.jsonrpc(self.endpoints['mail'], 'SendMessage', params, options)
+        return self.jsonrpc(self.endpoints['mail'],
+                            'SendMessage', params, options)
 
-    def getcontacts(self, options={}):
+    def getcontacts(self, options=None):
+        if options is None:
+            options = {}
         profile = self.account.get('profile', {})
         guid = profile.get('xoauth_yahoo_guid')
         params = {
@@ -318,11 +349,17 @@ class api():
                 value = f.get('value')
                 if field == 'name':
                     if  value.get('middleName'):
-                        poco['displayName'] = "%s %s %s" % (value.get('givenName'), value.get('middleName'), value.get('familyName'),)
+                        poco['displayName'] = "%s %s %s" % \
+                                (value.get('givenName'),
+                                 value.get('middleName'),
+                                 value.get('familyName'),)
                     else:
-                        poco['displayName'] = "%s %s" % (value.get('givenName'), value.get('familyName'),)
+                        poco['displayName'] = "%s %s" % \
+                                (value.get('givenName'),
+                                 value.get('familyName'),)
                 elif field == 'email':
-                    poco.setdefault('emails', []).append({'value': value, 'primary': False})
+                    poco.setdefault('emails', []).append({'value': value,
+                                                          'primary': False})
                 elif field == 'nickname':
                     poco['nickname'] = value
 
@@ -337,7 +374,7 @@ class api():
         if start + count < total:
             connectedto['pageData'] = {
                 'count': count,
-                'start': start + count
+                'start': start + count,
             }
 
         return connectedto, None

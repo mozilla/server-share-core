@@ -19,56 +19,61 @@
 # the Initial Developer. All Rights Reserved.
 #
 # Contributor(s):
+#   Rob Miller (rmiller@mozilla.com)
 #
 
 # partially based on code from velruse
-
+import copy
 import json
 import logging
-from urllib2 import URLError
 from urllib import urlencode
 
 import oauth2 as oauth
 
-from linkoauth.util import asbool
-from linkoauth.base import OAuth1, get_oauth_config, OAuthKeysException
+from linkoauth.oauth import OAuth1, get_oauth_config
+from linkoauth.errors import OAuthKeysException
 from linkoauth.protocap import OAuth2Requestor
 
 domain = 'twitter.com'
 log = logging.getLogger(domain)
 
+# example record for twiter_to_poco:
+
+"""
+{'id': 33934767,
+ 'verified': False,
+ 'profile_sidebar_fill_color': 'e0ff92',
+ 'profile_text_color': '000000',
+ 'followers_count': 47,
+ 'profile_sidebar_border_color': '87bc44',
+ 'location': '',
+ 'profile_background_color': '9ae4e8',
+ 'utc_offset': None,
+ 'statuses_count': 36,
+ 'description': '',
+ 'friends_count': 58,
+ 'profile_link_color': '0000ff',
+ 'profile_image_url':
+    'http://a3.twimg.com/profile_images/763050003/me_normal.png',
+ 'notifications': False,
+ 'geo_enabled': False,
+ 'profile_background_image_url':
+    'http://s.twimg.com/a/1276197224/images/themes/theme1/bg.png',
+ 'screen_name': 'mixedpuppy',
+ 'lang': 'en',
+ 'profile_background_tile': False,
+ 'favourites_count': 0,
+ 'name': 'Shane Caraveo',
+ 'url': 'http://mixedpuppy.wordpress.com',
+ 'created_at': 'Tue Apr 21 15:21:25 +0000 2009',
+ 'contributors_enabled': False,
+ 'time_zone': None,
+ 'protected': False,
+ 'following': False}
+"""
+
 
 def twitter_to_poco(user):
-    # example record
-    #{'id': 33934767,
-    # 'verified': False,
-    # 'profile_sidebar_fill_color': 'e0ff92',
-    # 'profile_text_color': '000000',
-    # 'followers_count': 47,
-    # 'profile_sidebar_border_color': '87bc44',
-    # 'location': '',
-    # 'profile_background_color': '9ae4e8',
-    # 'utc_offset': None,
-    # 'statuses_count': 36,
-    # 'description': '',
-    # 'friends_count': 58,
-    # 'profile_link_color': '0000ff',
-    # 'profile_image_url': 'http://a3.twimg.com/profile_images/763050003/me_normal.png',
-    # 'notifications': False,
-    # 'geo_enabled': False,
-    # 'profile_background_image_url': 'http://s.twimg.com/a/1276197224/images/themes/theme1/bg.png',
-    # 'screen_name': 'mixedpuppy',
-    # 'lang': 'en',
-    # 'profile_background_tile': False,
-    # 'favourites_count': 0,
-    # 'name': 'Shane Caraveo',
-    # 'url': 'http://mixedpuppy.wordpress.com',
-    # 'created_at': 'Tue Apr 21 15:21:25 +0000 2009',
-    # 'contributors_enabled': False,
-    # 'time_zone': None,
-    # 'protected': False,
-    # 'following': False}
-
     poco = {
         'displayName': user.get('name', user.get('screen_name')),
     }
@@ -82,17 +87,23 @@ def twitter_to_poco(user):
 
     account = {'domain': 'twitter.com',
                'userid': user['id'],
-               'username': user['screen_name'] }
+               'username': user['screen_name']}
     poco['accounts'] = [account]
 
     return poco
 
-class responder(OAuth1):
+
+class TwitterResponder(OAuth1):
     """Handle Twitter OAuth login/authentication"""
     domain = 'twitter.com'
 
     def __init__(self):
         OAuth1.__init__(self, domain)
+        self.domain = domain
+
+    @classmethod
+    def get_name(cls):
+        return cls.domain
 
     def _get_credentials(self, access_token):
         # XXX should call twitter.api.VerifyCredentials to get the user object
@@ -107,34 +118,45 @@ class responder(OAuth1):
 
         account = {'domain': 'twitter.com',
                    'userid': userid,
-                   'username': username }
+                   'username': username}
         profile['accounts'] = [account]
 
         result_data = {'profile': profile,
-                       'oauth_token': access_token['oauth_token'],
-                       'oauth_token_secret': access_token['oauth_token_secret']}
-        result, error = api(oauth_token=access_token['oauth_token'],
-                   oauth_token_secret=access_token['oauth_token_secret']).profile()
+                      'oauth_token': access_token['oauth_token'],
+                      'oauth_token_secret': access_token['oauth_token_secret']}
+        result, error = TwitterRequester(
+              oauth_token=access_token['oauth_token'],
+              oauth_token_secret=access_token['oauth_token_secret']).profile()
         if result:
             profile.update(twitter_to_poco(result))
         return result_data
 
-class api():
-    def __init__(self, account=None, oauth_token=None, oauth_token_secret=None):
+
+class TwitterRequester(object):
+    def __init__(self, account=None, oauth_token=None,
+                 oauth_token_secret=None):
+        self.domain = domain
         self.config = get_oauth_config(domain)
         oauth_token = account and account.get('oauth_token') or oauth_token
-        oauth_token_secret = account and account.get('oauth_token_secret') or oauth_token_secret
+        oauth_token_secret = (account and account.get('oauth_token_secret')
+                              or oauth_token_secret)
 
         self.account = account
         try:
-            self.oauth_token = oauth.Token(key=oauth_token, secret=oauth_token_secret)
+            self.oauth_token = oauth.Token(key=oauth_token,
+                                           secret=oauth_token_secret)
         except ValueError, e:
             # missing oauth tokens, raise our own exception
             raise OAuthKeysException(str(e))
         self.consumer_key = self.config.get('consumer_key')
         self.consumer_secret = self.config.get('consumer_secret')
-        self.consumer = oauth.Consumer(key=self.consumer_key, secret=self.consumer_secret)
+        self.consumer = oauth.Consumer(key=self.consumer_key,
+                                       secret=self.consumer_secret)
         self.sigmethod = oauth.SignatureMethod_HMAC_SHA1()
+
+    @classmethod
+    def get_name(cls):
+        return domain
 
     def _make_error(self, client, data, resp):
         status = int(resp['status'])
@@ -158,11 +180,12 @@ class api():
             error = {
                 'message': data['error'],
             }
-        # who knows, some other abberation 
+        # who knows, some other abberation
         else:
             client.save_capture('unexpected response')
             error = {
-                'message': "expectedly, an unexpected twitter error: %r"% (data,),
+                'message': "expectedly, an unexpected twitter error: %r"
+                % (data,),
             }
             log.error(error['message'])
 
@@ -173,7 +196,7 @@ class api():
 
     def rawcall(self, url, params=None, method="GET"):
         client = OAuth2Requestor(self.consumer, self.oauth_token)
-        if method=="POST":
+        if method == "POST":
             body = urlencode(params)
         else:
             assert params is None
@@ -190,8 +213,9 @@ class api():
             result = data
         return result, error
 
-    def sendmessage(self, message, options={}):
-        result = error = None
+    def sendmessage(self, message, options=None):
+        if options is None:
+            options = {}
         # insert the url if it is not already in the message
         longurl = options.get('link')
         shorturl = options.get('shorturl')
@@ -216,10 +240,10 @@ class api():
                          'provider': domain,
                          'message': 'Missing addressee for direct message'}
             url = 'https://api.twitter.com/1/direct_messages/new.json'
-            body = { 'user': direct, 'text': message }
+            body = {'user': direct, 'text': message}
         elif share_type == 'public':
             url = 'https://api.twitter.com/1/statuses/update.json'
-            body = { 'status': message }
+            body = {'status': message}
         else:
             return None, {'code': 400,
                           'provider': domain,
@@ -230,9 +254,13 @@ class api():
         url = 'https://api.twitter.com/1/account/verify_credentials.json'
         return self.rawcall(url)
 
-    def getcontacts(self, options={}):
+    def getcontacts(self, options=None):
+        if options is None:
+            options = {}
         cursor = int(options.get('cursor', -1))
-        url = 'https://api.twitter.com/1/statuses/followers.json?screen_name=%s&cursor=%s' % (self.account.get('username'), cursor)
+        url = ('https://api.twitter.com/1/statuses/followers.json'
+               '?screen_name=%s&cursor=%s'
+               % (self.account.get('username'), cursor))
         # for twitter we get only those people who we follow and who follow us
         # since this data is used for direct messaging
         contacts = []
@@ -247,12 +275,12 @@ class api():
             'entry': contacts,
             'itemsPerPage': len(contacts),
             'startIndex':   0,
-            'totalResults': len(contacts)
+            'totalResults': len(contacts),
         }
         nextCursor = data.get('next_cursor', 0)
         if nextCursor > 0:
             connectedto['pageData'] = {
-                'cursor': nextCursor
+                'cursor': nextCursor,
             }
 
         return connectedto, None

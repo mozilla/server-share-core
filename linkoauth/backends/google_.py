@@ -30,6 +30,8 @@ Google Apps using OAuth2.
 """
 import os
 import urlparse
+import socket
+
 from openid.extensions import ax, pape
 from openid.consumer import consumer
 from openid import oidutil
@@ -58,8 +60,9 @@ from linkoauth.oid_extensions import OAuthRequest
 from linkoauth.oid_extensions import UIRequest
 from linkoauth.openidconsumer import ax_attributes, attributes
 from linkoauth.openidconsumer import OpenIDResponder
-from linkoauth.base import get_oauth_config, OAuthKeysException
+from linkoauth.oauth import get_oauth_config
 from linkoauth.protocap import ProtocolCapturingBase, OAuth2Requestor
+from linkoauth.errors import BackendError, OptionError, OAuthKeysException
 
 GOOGLE_OAUTH = 'https://www.google.com/accounts/OAuthGetAccessToken'
 
@@ -107,7 +110,10 @@ class GoogleConsumer(consumer.GenericConsumer):
         return modeMethod(message, endpoint, return_to)
 
 
-class responder(OpenIDResponder):
+class GoogleResponder(OpenIDResponder):
+
+    domain = 'google.com'
+
     def __init__(self, consumer=None, oauth_key=None, oauth_secret=None,
                  request_attributes=None, domain='google.com',
                  *args, **kwargs):
@@ -117,13 +123,16 @@ class responder(OpenIDResponder):
         authentication.
 
         """
-
         OpenIDResponder.__init__(self, domain)
         self.consumer_key = str(self.config.get('consumer_key'))
         self.consumer_secret = str(self.config.get('consumer_secret'))
         # support for google apps domains
         self.provider = domain
         self.consumer_class = GoogleConsumer
+
+    @classmethod
+    def get_name(cls):
+        return cls.domain
 
     def _lookup_identifier(self, identifier):
         """Return the Google OpenID directed endpoint"""
@@ -250,10 +259,12 @@ class SMTP(smtplib.SMTP):
             raise smtplib.SMTPResponseException(code, resp)
         return code, resp
 
+
 # A "protocol capturing" SMTP class - should move into its own module
 # once we get support for other SMTP servers...
 class SMTPRequestorImpl(SMTP, ProtocolCapturingBase):
     pc_protocol = "smtp"
+
     def __init__(self, host, port):
         self._record = []
         self.pc_host = host
@@ -274,7 +285,8 @@ class SMTPRequestorImpl(SMTP, ProtocolCapturingBase):
         except Exception, exc:
             try:
                 module = getattr(exc, '__module__', None)
-                erepr = {'module': module, 'name': exc.__class__.__name__, 'args': exc.args}
+                erepr = {'module': module, 'name': exc.__class__.__name__,
+                         'args': exc.args}
                 self._record.append("E " + json.dumps(erepr))
             except Exception:
                 log.exception("failed to serialize an SMTP exception")
@@ -297,12 +309,14 @@ class SMTPRequestorImpl(SMTP, ProtocolCapturingBase):
 
 SMTPRequestor = SMTPRequestorImpl
 
-class api():
+
+class GoogleRequester(object):
     def __init__(self, account):
+        self.domain = domain
+        self.account = account
         self.host = "smtp.gmail.com"
         self.port = 587
         self.config = get_oauth_config(domain)
-        self.account = account
         try:
             self.oauth_token = oauth.Token(
                     key=account.get('oauth_token'),
@@ -315,7 +329,13 @@ class api():
         self.consumer = oauth.Consumer(key=self.consumer_key,
                 secret=self.consumer_secret)
 
-    def sendmessage(self, message, options={}):
+    @classmethod
+    def get_name(cls):
+        return domain
+
+    def sendmessage(self, message, options=None):
+        if options is None:
+            options = {}
         result = error = None
 
         profile = self.account.get('profile', {})
@@ -346,7 +366,9 @@ class api():
             else:
                 to_ = Header(addr[1], 'utf-8').encode()
             to_headers.append(to_)
-        assert to_headers  # we caught all cases where it could now be empty.
+
+        if len(to_headers) == 0:
+            raise OptionError('the To header cannot be empty')
 
         subject = options.get('subject', config.get('share_subject',
                               'A web link has been shared with you'))
@@ -440,7 +462,8 @@ class api():
                 except smtplib.SMTPResponseException, exc:
                     server.save_capture("smtp response exception")
                     error = {"provider": self.host,
-                             "message": "%s: %s" % (exc.smtp_code, exc.smtp_error),
+                             "message": "%s: %s" % (exc.smtp_code,
+                                                    exc.smtp_error),
                              "status": exc.smtp_code}
                 except smtplib.SMTPException, exc:
                     server.save_capture("smtp exception")
@@ -453,6 +476,11 @@ class api():
                     server.save_capture("ValueError sending email")
                     error = {"provider": self.host,
                              "message": str(exc)}
+                except socket.timeout, exc:
+                    server.save_capture('Timeout sending email')
+                    error = {"provider": self.host,
+                             "message": str(exc)}
+                    raise BackendError(error)
             finally:
                 try:
                     server.quit()
@@ -471,8 +499,10 @@ class api():
                 server.save_capture("early smtp exception")
             error = {"provider": self.host,
                      "message": str(exc)}
+
         if error is None:
             result = {"status": "message sent"}
+
         return result, error
 
     def getgroup_id(self, group):
@@ -488,7 +518,9 @@ class api():
             if group == this_group:
                 return entry.id.text
 
-    def getcontacts(self, options={}):
+    def getcontacts(self, options=None):
+        if options is None:
+            options = {}
         start = int(options.get('start', 0))
         page = int(options.get('page', 25))
         group = options.get('group', None)
