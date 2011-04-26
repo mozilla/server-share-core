@@ -44,6 +44,7 @@ setup(
         "WebHelpers",
         "simplejson",
         "nose",
+        "mock",
         "pylibmc",
         "Services"],
     packages=find_packages(exclude=['ez_setup']),
