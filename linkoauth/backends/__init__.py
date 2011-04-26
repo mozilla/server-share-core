@@ -180,4 +180,4 @@ class Services(ServicesStatus):
 
     def verify(self, domain, request, url, session, **kw):
         return get_responder(domain, **kw).verify(request, url,
-                                                          session)
+                                                  session)
