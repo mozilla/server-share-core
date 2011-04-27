@@ -125,7 +125,7 @@ class TestBasics(unittest.TestCase):
         services.initialize('google.com')
 
         res, error = services.sendmessage('google.com', _ACCOUNT,
-                                          message, args)
+                                          message, args, None)
 
         status = services.get_status('google.com')
         self.assertEquals(status, (True, 1, 0))

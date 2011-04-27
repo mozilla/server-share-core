@@ -129,7 +129,7 @@ class TestBasics(unittest.TestCase):
 
         # this sends a success to the callback
         res, error = services.sendmessage('google.com', _ACCOUNT,
-                                          message, args)
+                                          message, args, None)
 
         status = services.get_status('google.com')
         self.assertEquals(status, (True, 1, 0))
@@ -138,7 +138,7 @@ class TestBasics(unittest.TestCase):
         _SMTP.working = False
         try:
             res, error = services.sendmessage('google.com', _ACCOUNT,
-                                              message, args)
+                                              message, args, None)
         finally:
             _SMTP.working = True
 
