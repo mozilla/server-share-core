@@ -1,12 +1,33 @@
-
+# ***** BEGIN LICENSE BLOCK *****
+# Version: MPL 1.1
+#
+# The contents of this file are subject to the Mozilla Public License Version
+# 1.1 (the "License"); you may not use this file except in compliance with
+# the License. You may obtain a copy of the License at
+# http://www.mozilla.org/MPL/
+#
+# Software distributed under the License is distributed on an "AS IS" basis,
+# WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+# for the specific language governing rights and limitations under the
+# License.
+#
+# The Original Code is Raindrop.
+#
+# The Initial Developer of the Original Code is
+# Mozilla Messaging, Inc..
+# Portions created by the Initial Developer are Copyright (C) 2009
+# the Initial Developer. All Rights Reserved.
+#
+# Contributor(s):
+#
 import json
 import oauth2 as oauth
 import logging
 from rfc822 import AddressList
 
-from linkoauth.base import OAuth1, get_oauth_config, OAuthKeysException
-from linkoauth.util import config, render
-from linkoauth.util import safeHTML, literal
+from linkoauth.oauth import OAuth1, get_oauth_config
+from linkoauth.errors import OAuthKeysException
+from linkoauth.util import config, render, safeHTML, literal
 from linkoauth.protocap import OAuth2Requestor
 
 domain = 'linkedin.com'
@@ -47,6 +68,10 @@ class responder(OAuth1):
     def __init__(self):
         OAuth1.__init__(self, domain)
 
+    @classmethod
+    def get_name(cls):
+        return cls.domain
+
     def _get_credentials(self, access_token):
         fields = ['id', 'first-name', 'last-name', 'picture-url',
                   'public-profile-url', 'site-standard-profile-request']
@@ -74,7 +99,7 @@ class responder(OAuth1):
         return result_data
 
 
-class api():
+class api(object):
     def __init__(self, account):
         self.config = get_oauth_config(domain)
         self.account = account
@@ -89,6 +114,10 @@ class api():
         self.consumer = oauth.Consumer(key=self.consumer_key,
                                        secret=self.consumer_secret)
         self.sigmethod = oauth.SignatureMethod_HMAC_SHA1()
+
+    @classmethod
+    def get_name(cls):
+        return domain
 
     def rawcall(self, url, body=None, method="GET", headers=None):
         client = OAuth2Requestor(self.consumer, self.oauth_token)
@@ -115,6 +144,8 @@ class api():
         return result, error
 
     def sendmessage(self, message, options, headers):
+        if options is None:
+            options = {}
         share_type = str(options.get('shareType', ''))
         if not share_type or share_type not in \
             ('public', 'myConnections', 'contact'):
@@ -126,7 +157,8 @@ class api():
         if share_type in ('public', 'myConnections'):
             direct = options.get('to', 'anyone')
             if (share_type == 'public' and direct != 'anyone') or \
-               (share_type == 'myConnections' and direct != 'connections-only'):
+               (share_type == 'myConnections' and
+                direct != 'connections-only'):
                 return None, {'code': 400,
                               'provider': 'linkedin',
                               'message': 'Incorrect addressing for post'}
@@ -194,7 +226,9 @@ class api():
 
         return self.rawcall(url, body, method="POST", headers=headers)
 
-    def getcontacts(self, start, page, group, headers):
+    def getcontacts(self, options, headers):
+        start = int(options.get('start', 0))
+        page = int(options.get('page', 25))
         contacts = []
         url = 'http://api.linkedin.com/v1/people/~/connections?count=%d' % page
         if start > 0:
@@ -210,11 +244,16 @@ class api():
         for entry in entries:
             contacts.append(extract_li_data(entry))
 
+        count = result.get('_count', result.get('_total', 0))
+        start = result.get('_start', 0)
+        total = result.get('_total', 0)
         connectedto = {
             'entry': contacts,
-            'itemsPerPage': result.get('_count', result.get('_total', 0)),
-            'startIndex':   result.get('_start', 0),
-            'totalResults': result.get('_total'),
         }
+        if start + count < total:
+            connectedto['pageData'] = {
+                'count': count,
+                'start': start + count,
+            }
 
         return connectedto, error

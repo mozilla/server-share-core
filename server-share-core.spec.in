@@ -17,7 +17,7 @@
 %global python_sitelib /lib/python%{python_version}/site-packages
 %global python_sitearch /%{_lib}/python%{python_version}/site-packages
 
-Name:           %{f1_name_prefix}python%{pyver_sys}-linkoauth
+Name:           %{f1_name_prefix}python%{pyver}-linkoauth
 Version:        %%version%%
 Release:        1%{?dist}
 Summary:        Share Links Fast.

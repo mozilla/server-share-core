@@ -1,3 +1,25 @@
+# ***** BEGIN LICENSE BLOCK *****
+# Version: MPL 1.1
+#
+# The contents of this file are subject to the Mozilla Public License Version
+# 1.1 (the "License"); you may not use this file except in compliance with
+# the License. You may obtain a copy of the License at
+# http://www.mozilla.org/MPL/
+#
+# Software distributed under the License is distributed on an "AS IS" basis,
+# WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+# for the specific language governing rights and limitations under the
+# License.
+#
+# The Original Code is Raindrop.
+#
+# The Initial Developer of the Original Code is
+# Mozilla Messaging, Inc..
+# Portions created by the Initial Developer are Copyright (C) 2009
+# the Initial Developer. All Rights Reserved.
+#
+# Contributor(s):
+#
 import os
 import json
 import httplib2
@@ -7,33 +29,41 @@ import logging
 import urlparse
 
 import oauth2
-from linkoauth.util import config, redirect, asbool
+from linkoauth.errors import OptionError
+from linkoauth.util import config, asbool
 
 log = logging.getLogger(__name__)
 
+
 # A capturing base-class - not specific to a single protocol
 class ProtocolCapturingBase(object):
-    pc_protocol = None # should be set by sub-classes
+    pc_protocol = None   # should be set by sub-classes
+
     def __init__(self, host=None):
-        assert self.pc_protocol is not None # set this on the subclass!
+        if self.pc_protocol is None:
+            raise OptionError('The protocol must be set by the subclass')
 
     def pc_get_host(self):
-        raise NotImplementedError() # subclasses must provide this
+        raise NotImplementedError   # subclasses must provide this
 
     def _save_capture(self, dirname):
-        raise NotImplementedError() # subclasses must provide this
+        raise NotImplementedError   # subclasses must provide this
 
     def save_capture(self, reason="no reason"):
         host = self.pc_get_host()
         try:
             base_path = config.get('protocol_capture_path')
             if not base_path:
-                log.warn("want to write a request capture, but no protocol_capture_path is defined")
+                log.warn("want to write a request capture, "
+                         "but no protocol_capture_path is defined")
                 return
             if not os.path.isdir(base_path):
-                log.warn("want to write a request capture, but directory %r does not exist", base_path)
+                log.warn("want to write a request capture, "
+                         "but directory %r does not exist", base_path)
                 return
-            thisdir = "%s-%s-%s-%s" % (self.pc_protocol, host, time.time(), random.getrandbits(32))
+
+            thisdir = "%s-%s-%s-%s" % (self.pc_protocol, host, time.time(),
+                                       random.getrandbits(32))
             dirname = os.path.join(base_path, thisdir)
             os.makedirs(dirname)
             # call the subclass to save itself and return the metadata
@@ -51,6 +81,7 @@ class ProtocolCapturingBase(object):
 
 # Stuff for http captures
 
+
 # In memory repr is
 # {'uri': full URI initiating the sequence
 #  'connections': [list of connection made]
@@ -67,10 +98,13 @@ class RecordingHttpBase(object):
 
     def _conn_request(self, conn, request_uri, method, body, headers):
         connections = self.capture['connections']
-        this_con = {'path': request_uri, 'method': method, 'body': body, 'headers': headers}
+        this_con = {'path': request_uri, 'method': method, 'body': body,
+                    'headers': headers}
         connections.append(this_con)
         try:
-            response, content = super(RecordingHttpBase, self)._conn_request(conn, request_uri, method, body, headers)
+            klass = super(RecordingHttpBase, self)
+            response, content = klass._conn_request(conn, request_uri,
+                                                    method, body, headers)
         except Exception, e:
             this_con['exception'] = e
             raise
@@ -79,6 +113,7 @@ class RecordingHttpBase(object):
         this_con['response_reason'] = response.reason
         this_con['content'] = content
         return response, content
+
 
 class RecordingHttplib2(RecordingHttpBase, httplib2.Http):
     def __init__(self):
@@ -92,6 +127,7 @@ class HttpRequestor(ProtocolCapturingBase):
     """
     pc_protocol = 'http'
     pc_http_class = RecordingHttplib2
+
     def __init__(self, *args, **kw):
         ProtocolCapturingBase.__init__(self)
         self.http = self.pc_http_class(*args, **kw)
@@ -101,8 +137,8 @@ class HttpRequestor(ProtocolCapturingBase):
 
     def request(self, uri, method="GET", body='', headers=None):
         response, data = self.http.request(uri, method, body, headers)
-        if 300 > int(response['status']) >= 200 and \
-           asbool(config.get('protocol_capture_success')):
+        if (300 > int(response['status']) >= 200 and
+            asbool(config.get('protocol_capture_success'))):
             self.save_capture("automatic success save")
         return response, data
 
@@ -116,18 +152,21 @@ class HttpRequestor(ProtocolCapturingBase):
                     f.write("%s: %s\r\n" % (n, v))
                 f.write("\r\n")
                 if con['body']:
-                     f.write(con['body'])
+                    f.write(con['body'])
             if 'response_status' in con:
                 resp_file = os.path.join(dirname, "response-%d" % i)
                 with open(resp_file, "wb") as f:
-                    f.write("HTTP/1.1 %s %s\r\n" % (con['response_status'], con['response_reason']))
+                    f.write("HTTP/1.1 %s %s\r\n" % (con['response_status'],
+                                                    con['response_reason']))
                     for n, v in con['response_headers'].iteritems():
-                        if n != "transfer-encoding": # we don't chunk on replay...
+                        # we don't chunk on replay...
+                        if n != "transfer-encoding":
                             f.write("%s: %s\r\n" % (n, v))
                     f.write("\r\n")
                     f.write(con['content'])
             # XXX - todo - exceptions!
         return {'uri': capture['uri']}
+
 
 # For code which uses the oauth2 library - still httplib2 based but with
 # a class in the middle of the inheritance tree.
@@ -135,6 +174,7 @@ class RecordingOauth2(RecordingHttpBase, oauth2.Client):
     def __init__(self, *args, **kw):
         oauth2.Client.__init__(self, *args, **kw)
         RecordingHttpBase.__init__(self)
+
 
 class OAuth2Requestor(HttpRequestor):
     pc_http_class = RecordingOauth2

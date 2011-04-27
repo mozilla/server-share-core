@@ -29,7 +29,8 @@ from openid.store import memstore, filestore
 from openid import oidutil
 
 from linkoauth.util import config, redirect
-from linkoauth.base import get_oauth_config, AccessException
+from linkoauth.oauth import get_oauth_config
+from linkoauth.errors import AccessException
 
 
 log = logging.getLogger("oauth.openid")
@@ -191,7 +192,7 @@ def extract_openid_data(identifier, sreg_resp, ax_resp):
     return ud
 
 
-class OpenIDResponder():
+class OpenIDResponder(object):
     """OpenID Consumer for handling OpenID authentication
     """
 
@@ -259,8 +260,6 @@ class OpenIDResponder():
         return None
 
     def request_access(self, request, url, session):
-        post = request.POST
-
         log_debug = self.log_debug
         if log_debug:
             log.debug('Handling OpenID login')

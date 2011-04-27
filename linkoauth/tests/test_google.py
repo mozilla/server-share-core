@@ -1,15 +1,37 @@
+# ***** BEGIN LICENSE BLOCK *****
+# Version: MPL 1.1
+#
+# The contents of this file are subject to the Mozilla Public License Version
+# 1.1 (the "License"); you may not use this file except in compliance with
+# the License. You may obtain a copy of the License at
+# http://www.mozilla.org/MPL/
+#
+# Software distributed under the License is distributed on an "AS IS" basis,
+# WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+# for the specific language governing rights and limitations under the
+# License.
+#
+# The Original Code is Raindrop.
+#
+# The Initial Developer of the Original Code is
+# Mozilla Messaging, Inc..
+# Portions created by the Initial Developer are Copyright (C) 2009
+# the Initial Developer. All Rights Reserved.
+#
+# Contributor(s):
+#       Tarek Ziade <tarek@mozilla.com>
+import socket
 import unittest
 import httplib2
 import json
 import mock
-import time
 import urllib2
 
 from linkoauth.util import setup_config
 from linkoauth.backends import google_
 from linkoauth import Services
 from linkoauth import sstatus
-from linkoauth.errors import DomainNotRegisteredError
+from linkoauth.tests.test_base import MockCache
 
 
 _ACCOUNT = {'oauth_token': 'xxx',
@@ -39,6 +61,8 @@ def _request(*args, **kwargs):
 
 class _SMTP(object):
 
+    working = True
+
     def __init__(self, *args):
         pass
 
@@ -48,12 +72,17 @@ class _SMTP(object):
     ehlo_or_helo_if_needed = starttls = quit
 
     def authenticate(self, *args):
-        pass
+        if not self.working:
+            raise socket.timeout()
 
     sendmail = authenticate
 
+    def save_capture(self, msg):
+        pass
+
 
 class _FakeResult(object):
+
     headers = {}
 
     def read(self):
@@ -63,32 +92,6 @@ class _FakeResult(object):
 
 def _urlopen(*args):
     return _FakeResult()
-
-
-class MockCache(object):
-    def __init__(self):
-        self._cache = dict()
-        self._cache_ttl = dict()
-
-    def get(self, key):
-        if key in self._cache_ttl:
-            now = time.time()
-            ttl, last_time = self._cache_ttl[key]
-            if now - last_time > ttl:
-                del self._cache_ttl[key]
-                del self._cache[key]
-            else:
-                self._cache_ttl[key] = (ttl, now)
-        return self._cache.get(key)
-
-    def set(self, key, value, **kwargs):
-        self._cache[key] = value
-        ttl = kwargs.get('time')
-        if ttl is not None:
-            self._cache_ttl[key] = (ttl, time.time())
-
-    def incr(self, key):
-        self._cache[key] = self._cache[key] + 1
 
 
 class TestBasics(unittest.TestCase):
@@ -124,36 +127,20 @@ class TestBasics(unittest.TestCase):
         services = Services(['google.com'])
         services.initialize('google.com')
 
+        # this sends a success to the callback
         res, error = services.sendmessage('google.com', _ACCOUNT,
                                           message, args)
 
         status = services.get_status('google.com')
         self.assertEquals(status, (True, 1, 0))
 
-    def test_service_unknown(self):
-
-        # this should fail, as 'a' is not registered
-        self.assertRaises(DomainNotRegisteredError,
-                          Services, ['google.com', 'a'])
-
-        # this should fail too
-        services = Services(['google.com'])
-        self.assertRaises(DomainNotRegisteredError, services.sendmessage, 'a',
-                          object(), '', '')
-
-    def test_disabled(self):
-        message = ''
-        args = {'to': 'tarek@ziade.org',
-                'subject': 'xxx',
-                'title': 'the title',
-                'description': 'some description',
-                'link': 'http://example.com',
-                'shorturl': 'http://example.com'}
-
-        services = Services(['google.com'], feedback_enabled=False)
-        services.initialize('google.com')
-        res, error = services.sendmessage('google.com', _ACCOUNT,
-                                          message, args, None)
+        # let's break SMTP
+        _SMTP.working = False
+        try:
+            res, error = services.sendmessage('google.com', _ACCOUNT,
+                                              message, args)
+        finally:
+            _SMTP.working = True
 
         status = services.get_status('google.com')
-        self.assertEquals(status, (True, 0, 0))
+        self.assertEquals(status, (True, 1, 1))

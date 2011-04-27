@@ -18,7 +18,44 @@
 # Portions created by the Initial Developer are Copyright (C) 2009
 # the Initial Developer. All Rights Reserved.
 #
-# Contributor(s):
+# Contributor(s): Tarek Ziade <tarek@mozilla.com>
+#
 
-# exposing the class registers existing backends
-from linkoauth.backends import Services   # NOQA
+
+class BadVersionError(Exception):
+    pass
+
+
+class BackendError(Exception):
+    """Happens when there was a problem with the
+    third-party service failed
+    """
+
+
+class DomainNotRegisteredError(Exception):
+    pass
+
+
+class OptionError(Exception):
+    pass
+
+
+class StatusReadError(Exception):
+    pass
+
+
+class StatusWriteError(Exception):
+    pass
+
+
+class OAuthKeysException(Exception):
+    pass
+
+
+class AccessException(Exception):
+    pass
+
+
+class ServiceUnavailableException(Exception):
+    def __init__(self, debug_message=None):
+        self.debug_message = debug_message

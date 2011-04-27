@@ -6,6 +6,7 @@ endif
 
 APPNAME = server-share-core
 PKGNAME = linkoauth
+DEPS = mozilla:server-core
 
 VIRTUALENV = virtualenv
 NOSE = $(BIN_DIR)/nosetests
@@ -48,9 +49,11 @@ $(APPNAME).spec: $(APPNAME).spec.in Makefile tools/makespec
 
 build:
 	$(VIRTUALENV) --no-site-packages --distribute .
+	$(PYTHON) build.py $(APPNAME) $(DEPS)
 	$(PYTHON) setup.py develop
 
 test:
+	$(EZ) mock
 	$(NOSE) $(NOSETESTS_ARGS) $(TESTS)
 
 coverage:
