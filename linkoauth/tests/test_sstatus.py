@@ -127,7 +127,7 @@ class TestServiceStatus(unittest.TestCase):
             status = self.services.get_status('d')
             self.assertEqual(status, (True, 10, 0))
 
-            time.sleep(1.)
+            time.sleep(2.)
             self.mock_cache.pdb = True
             status = self.services.get_status('d')
             self.assertEqual(status, (True, 0, 0))
