@@ -25,15 +25,15 @@ class TestBasics(unittest.TestCase):
         self.assertEqual(error['code'], expected_code)
 
     def test_no_share_type(self):
-        res, error = self.requester.sendmessage('', self.get_args())
+        res, error = self.requester.sendmessage('', self.get_args(), None)
         self.check_error(res, error)
 
     def test_invalid_share_type(self):
         res, error = self.requester.sendmessage(
-            '', self.get_args(shareType="invalid"))
+            '', self.get_args(shareType="invalid"), None)
         self.check_error(res, error)
 
     def test_direct_no_to(self):
         args = self.get_args(shareType='direct', to='')
-        res, error = self.requester.sendmessage('', args)
+        res, error = self.requester.sendmessage('', args, None)
         self.check_error(res, error)

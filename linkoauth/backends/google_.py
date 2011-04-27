@@ -333,7 +333,7 @@ class GoogleRequester(object):
     def get_name(cls):
         return domain
 
-    def sendmessage(self, message, options=None):
+    def sendmessage(self, message, options, headers):
         if options is None:
             options = {}
         result = error = None
@@ -505,11 +505,11 @@ class GoogleRequester(object):
 
         return result, error
 
-    def getgroup_id(self, group):
+    def getgroup_id(self, group, headers):
         url = 'https://www.google.com/m8/feeds/groups/default/full?v=2'
         method = 'GET'
         client = oauth.Client(self.consumer, self.oauth_token)
-        resp, content = client.request(url, method)
+        resp, content = client.request(url, method, headers=headers)
         feed = gdata.contacts.GroupsFeedFromString(content)
         for entry in feed.entry:
             this_group = entry.content.text
@@ -518,9 +518,7 @@ class GoogleRequester(object):
             if group == this_group:
                 return entry.id.text
 
-    def getcontacts(self, options=None):
-        if options is None:
-            options = {}
+    def getcontacts(self, options, headers):
         start = int(options.get('start', 0))
         page = int(options.get('page', 25))
         group = options.get('group', None)
@@ -547,7 +545,7 @@ class GoogleRequester(object):
         if start > 0:
             url = url + "&start-index=%d" % (start,)
         if group:
-            gid = self.getgroup_id(group)
+            gid = self.getgroup_id(group, headers)
             if not gid:
                 error = {"provider": domain,
                          "message": "Group '%s' not available" % group}
@@ -556,7 +554,7 @@ class GoogleRequester(object):
 
         # itemsPerPage, startIndex, totalResults
         requestor = OAuth2Requestor(self.consumer, self.oauth_token)
-        resp, content = requestor.request(url, method)
+        resp, content = requestor.request(url, method, headers=headers)
 
         if int(resp.status) != 200:
             requestor.save_capture("contact fetch failure")

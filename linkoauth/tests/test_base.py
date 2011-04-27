@@ -153,7 +153,7 @@ class TestBasics(unittest.TestCase):
         services = Services(['google.com'], feedback_enabled=False)
         services.initialize('google.com')
         res, error = services.sendmessage('google.com', _ACCOUNT,
-                                          message, args)
+                                          message, args, None)
 
         status = services.get_status('google.com')
         self.assertEquals(status, (True, 0, 0))

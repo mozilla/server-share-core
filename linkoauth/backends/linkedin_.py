@@ -119,9 +119,9 @@ class api(object):
     def get_name(cls):
         return domain
 
-    def rawcall(self, url, body=None, method="GET"):
+    def rawcall(self, url, body=None, method="GET", headers=None):
         client = OAuth2Requestor(self.consumer, self.oauth_token)
-        headers = {}
+        headers = headers or {}
         headers['x-li-format'] = 'json'
 
         if body is not None:
@@ -143,7 +143,7 @@ class api(object):
 
         return result, error
 
-    def sendmessage(self, message, options=None):
+    def sendmessage(self, message, options, headers):
         if options is None:
             options = {}
         share_type = str(options.get('shareType', ''))
@@ -224,11 +224,9 @@ class api(object):
                 'subject': subject,
                 'body': text_message}
 
-        return self.rawcall(url, body, method="POST")
+        return self.rawcall(url, body, method="POST", headers=headers)
 
-    def getcontacts(self, options=None):
-        if options is None:
-            options = {}
+    def getcontacts(self, options, headers):
         start = int(options.get('start', 0))
         page = int(options.get('page', 25))
         contacts = []
@@ -236,7 +234,7 @@ class api(object):
         if start > 0:
             url = url + "&start=%d" % (start,)
 
-        result, error = self.rawcall(url, method="GET")
+        result, error = self.rawcall(url, method="GET", headers=headers)
         if error:
             return result, error
 

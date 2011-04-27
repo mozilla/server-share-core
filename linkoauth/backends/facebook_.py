@@ -236,16 +236,16 @@ class FacebookRequester(object):
                       'status': status})
         return error
 
-    def rawcall(self, url, body=None, method="GET", params=None):
+    def rawcall(self, url, body=None, method="GET", params=None, headers=None):
         if params is None:
             params = {}
         params['access_token'] = self.access_token
         url = url + "?" + urllib.urlencode(params)
-        headers = None
+        headers = headers or {}
         if body:
             content_type, body = encode_multipart_formdata(body)
-            headers = {'Content-type': content_type,
-                       'Content-Length': str(len(body))}
+            headers.update({'Content-type': content_type,
+                            'Content-Length': str(len(body))})
 
         client = HttpRequestor()
         resp, content = client.request(url, method=method, headers=headers,
@@ -281,9 +281,7 @@ class FacebookRequester(object):
         'caption': 'caption',
         'source': 'source'}
 
-    def sendmessage(self, message, options=None):
-        if options is None:
-            options = {}
+    def sendmessage(self, message, options, headers):
         share_type = options.get('shareType', None)
         if share_type == 'groupWall':
             direct = options.get('to', None)
@@ -300,11 +298,9 @@ class FacebookRequester(object):
             if ours in options:
                 body[yours] = options[ours]
 
-        return self.rawcall(url, body, "POST")
+        return self.rawcall(url, body, "POST", headers=headers)
 
-    def getcontacts(self, options=None):
-        if options is None:
-            options = {}
+    def getcontacts(self, options, headers):
         offset = int(options.get('offset', 0))
         limit = int(options.get('limit', 25))
         type_ = options.get('type', 'groups')
@@ -315,7 +311,7 @@ class FacebookRequester(object):
         }
         # using 'friends' would turn this into posting to a friends wall.
         url = "https://graph.facebook.com/me/%s" % type_
-        result, error = self.rawcall(url, params=params)
+        result, error = self.rawcall(url, params=params, headers=headers)
         if error:
             return result, error
 

@@ -166,13 +166,13 @@ class Services(ServicesStatus):
         return __updated
 
     @_updated
-    def sendmessage(self, domain, account, message, options={}, **kw):
-        return get_requester(domain, account).sendmessage(message, options,
-                                                          **kw)
+    def sendmessage(self, domain, account, *args, **kw):
+        return get_requester(domain, account).sendmessage(*args, **kw)
 
     @_updated
-    def getcontacts(self, domain, account, page_data=None, **kw):
-        return get_requester(domain, account, **kw).getcontacts(page_data)
+    def getcontacts(self, domain, account, page_data, headers, **kw):
+        return get_requester(domain, account, **kw).getcontacts(page_data,
+                                                                headers)
 
     def request_access(self, domain, request, url, session, **kw):
         return get_responder(domain, **kw).request_access(request, url,

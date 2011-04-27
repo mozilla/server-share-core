@@ -150,12 +150,12 @@ class YahooRequester(object):
         if status >= 500:
             raise ServiceUnavailableException(debug_message=content)
 
-    def jsonrpc(self, url, method, args, options=None):
-        if options is None:
-            options = {}
-        headers = {'Content-Type': 'application/json',
-                   'Accept': 'application/json'}
-
+    def jsonrpc(self, url, method, args, options=None, headers=None):
+        headers = headers or {}
+        headers.update({
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        })
         if options.get('HumanVerification'):
             headers['X-HumanVerification-ImageUrl'] = \
                     options.get('HumanVerificationImage')
@@ -207,10 +207,12 @@ class YahooRequester(object):
 
         return result, error
 
-    def restcall(self, url, method="GET", body=None, params=None):
-        headers = {
+    def restcall(self, url, method="GET", body=None, params=None, headers=None):
+        headers = headers or {}
+        headers.update({
             'Content-Type': 'application/json',
-            'Accept': 'application/json'}
+            'Accept': 'application/json'
+        })
 
         if params:
             url = url + "?" + urllib.urlencode(params)
@@ -243,9 +245,7 @@ class YahooRequester(object):
 
         return result, error
 
-    def sendmessage(self, message, options=None):
-        if options is None:
-            options = {}
+    def sendmessage(self, message, options, headers):
         profile = self.account.get('profile', {})
         from_ = profile.get('verifiedEmail')
         fullname = profile.get('displayName', None)
@@ -321,11 +321,9 @@ class YahooRequester(object):
                 "savecopy":1}]
 
         return self.jsonrpc(self.endpoints['mail'],
-                            'SendMessage', params, options)
+                            'SendMessage', params, options, headers)
 
-    def getcontacts(self, options=None):
-        if options is None:
-            options = {}
+    def getcontacts(self, options, headers):
         profile = self.account.get('profile', {})
         guid = profile.get('xoauth_yahoo_guid')
         params = {
@@ -334,7 +332,7 @@ class YahooRequester(object):
         }
 
         result, error = self.restcall(self.endpoints['contacts'] % (guid,),
-                                      params=params)
+                                      params=params, headers=headers)
         if error:
             return result, error
         ycontacts = result.get('contacts')
