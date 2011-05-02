@@ -1,1 +1,2 @@
 include server-share-core.spec
+recursive-include linkoauth/templates *.html *.mako
